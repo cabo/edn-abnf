@@ -39,8 +39,13 @@ end
 
 edn_file = ARGF.read
 
-edn = EDN.from_edn(edn_file)
-result = edn.tree               # XXX .tree?
+begin
+  edn = EDN.from_edn(edn_file)
+  result = edn.tree               # XXX .tree?
+rescue ArgumentError => e
+  puts "** #{e}"
+  exit 1
+end
 
 case $options.target
 when :basic, nil

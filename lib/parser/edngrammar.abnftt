@@ -60,7 +60,7 @@ app-string      = app-prefix sqstr{
     EDNGRAMMAR.const_set(:APPS, Hash.new { |h, k|
                            h[k] = begin ::CBOR_DIAG.const_get("App_#{app}")
                                   rescue NameError
-                                    raise ArgumentError.new("cbor-diagnostic: Unknown application-oriented extension #{k}")
+                                    raise ArgumentError, "cbor-diagnostic: Unknown application-oriented extension '#{k}'", caller
                                   end
                          }) unless ::EDNGRAMMAR.const_defined?(:APPS)
     ::EDNGRAMMAR::APPS[app].decode(app, data)
