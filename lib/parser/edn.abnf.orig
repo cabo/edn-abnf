@@ -1,0 +1,93 @@
+seq             = S [item S *("," S item S) OC] S
+item            = map / array / tagged
+                / basenumber / decnumber / infin / simple
+                / tstr / bstr / embedded / streamstring
+
+sign            = "+" / "-"
+decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]
+basenumber      = [sign] "0" ("x" 1*HEXDIG
+                            / "o" 1*ODIGIT
+                            / "b" 1*BDIGIT)
+infin           = %s"Infinity"
+                / %s"-Infinity"
+                / %s"NaN"
+simple          = %s"false"
+                / %s"true"
+                / %s"null"
+                / %s"undefined"
+                / %s"simple(" S item S ")"
+uint            = "0" / DIGIT1 *DIGIT
+tagged          = uint "(" S item S ")"
+
+app-prefix      = lcalpha *lcalnum ; including h and b64
+app-string      = app-prefix sqstr
+sqstr           = "'" *single-quoted "'"
+bstr            = app-string / sqstr ; app could be any type
+tstr            = DQUOTE *double-quoted DQUOTE
+embedded        = "<<" seq ">>"
+
+array           = "[" spec [item S *("," S item S) OC] "]"
+map             = "{" spec [kp S *("," S kp S) OC] "}"
+kp              = item S ":" S item
+
+; We allow %x09 HT in prose, but not in strings
+blank           = %x09 / %x0A / %x0D / %x20
+non-slash       = blank / %x21-2e / %x30-10FFFF
+S               = *blank *("/" *non-slash "/" *blank )
+
+; optional trailing comma (ignored)
+OC              = ["," S]
+
+; note that there must be at least one string to distinguish
+streamstring    = "(" spec1 tstr S *("," S tstr S) OC ")"
+                / "(" spec1 sqstr S *("," S sqstr S) OC ")"
+spec            = S ["_" S]
+spec1           = S "_" S
+
+double-quoted   = unescaped
+                / "'"
+                / "\" DQUOTE
+                / "\" escapable
+
+single-quoted   = unescaped
+                / DQUOTE
+                / "\" "'"
+                / "\" escapable
+
+escapable       = %s"b" ; BS backspace U+0008
+                / %s"f" ; FF form feed U+000C
+                / %s"n" ; LF line feed U+000A
+                / %s"r" ; CR carriage return U+000D
+                / %s"t" ; HT horizontal tab U+0009
+                / "/"   ; / slash (solidus) U+002F (JSON!)
+                / "\"   ; \ backslash (reverse solidus) U+005C
+                / (%s"u" hexchar) ;  uXXXX      U+XXXX
+
+hexchar         = non-surrogate
+                / (high-surrogate "\" %s"u" low-surrogate)
+non-surrogate   = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
+                / ("D" ODIGIT 2HEXDIG )
+high-surrogate  = "D" ("8"/"9"/"A"/"B") 2HEXDIG
+low-surrogate   = "D" ("C"/"D"/"E"/"F") 2HEXDIG
+
+; Note that no other C0 characters are allowed, including %x09 HT
+unescaped       = %x0A ; new line
+                / %x0D ; carriage return -- ignored on input
+                / %x20-21
+                     ; omit 0x22 "
+                / %x23-26
+                     ; omit 0x27 '
+                / %x28-5B
+                     ; omit 0x5C \
+                / %x5D-10FFFF
+
+DQUOTE          = %x22    ; " double quote
+DIGIT           = %x30-39 ; 0-9
+DIGIT1          = %x31-39 ; 1-9
+ODIGIT          = %x30-37 ; 0-7
+BDIGIT          = %x30-31 ; 0-1
+HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+; Note: double-quoted strings as in "A" are case-insensitive in ABNF
+lcalpha         = %x61-7A ; a-z
+lcalnum         = lcalpha / DIGIT
+ALPHA           = %x41-5A / lcalpha   ; A-Z / a-z

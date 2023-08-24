@@ -1,0 +1,755 @@
+---
+- - "="
+  - seq
+  - - im
+    - - seq
+      - S
+      - - rep
+        - 0
+        - 1
+        - - seq
+          - item
+          - S
+          - - rep
+            - 0
+            - true
+            - - seq
+              - - ci
+                - ","
+              - S
+              - item
+              - S
+          - OC
+      - S
+    - |-
+      {
+        def ast
+          r = if e = elements[1].elements
+                [e[0].ast] + e[2].elements.map {|x| x.item.ast }
+              else
+                []
+              end
+          if r.size == 1
+            r.first
+          else
+            CBOR::Sequence.new(r)
+          end
+        end
+      }
+- - "="
+  - item
+  - - alt
+    - map
+    - array
+    - tagged
+    - basenumber
+    - decnumber
+    - infin
+    - simple
+    - tstr
+    - bstr
+    - embedded
+    - streamstring
+- - "="
+  - sign
+  - - alt
+    - - ci
+      - "+"
+    - - ci
+      - "-"
+- - "="
+  - decnumber
+  - - im
+    - - seq
+      - - rep
+        - 0
+        - 1
+        - sign
+      - - rep
+        - 1
+        - true
+        - DIGIT
+      - - rep
+        - 0
+        - 1
+        - - seq
+          - - ci
+            - "."
+          - - rep
+            - 1
+            - true
+            - DIGIT
+      - - rep
+        - 0
+        - 1
+        - - seq
+          - - ci
+            - e
+          - - rep
+            - 0
+            - 1
+            - sign
+          - - rep
+            - 1
+            - true
+            - DIGIT
+    - |-
+      {
+        def ast
+          ip = elements[0].text_value + elements[1].text_value
+          dp = elements[2].text_value
+          ep = elements[3].text_value
+          if dp.empty? && ep.empty?
+            ip.to_i
+          else
+            (ip + dp + ep).to_f
+          end
+        end
+      }
+- - "="
+  - basenumber
+  - - im
+    - - seq
+      - - rep
+        - 0
+        - 1
+        - sign
+      - - ci
+        - '0'
+      - - alt
+        - - seq
+          - - ci
+            - x
+          - - rep
+            - 1
+            - true
+            - HEXDIG
+        - - seq
+          - - ci
+            - o
+          - - rep
+            - 1
+            - true
+            - ODIGIT
+        - - seq
+          - - ci
+            - b
+          - - rep
+            - 1
+            - true
+            - BDIGIT
+    - |-
+      {
+        def ast; Integer(text_value) end
+      }
+- - "="
+  - infin
+  - - alt
+    - - im
+      - - cs
+        - Infinity
+      - "{ def ast; Float::INFINITY end }"
+    - - im
+      - - cs
+        - "-Infinity"
+      - "{ def ast; -Float::INFINITY end }"
+    - - im
+      - - cs
+        - NaN
+      - "{ def ast; Float::NAN end }"
+- - "="
+  - simple
+  - - alt
+    - - im
+      - - cs
+        - 'false'
+      - "{ def ast; false end }"
+    - - im
+      - - cs
+        - 'true'
+      - "{ def ast; true end }"
+    - - im
+      - - cs
+        - 'null'
+      - "{ def ast; nil end }"
+    - - im
+      - - cs
+        - undefined
+      - "{ def ast; CBOR::Simple.new(23) end }"
+    - - im
+      - - seq
+        - - cs
+          - simple(
+        - S
+        - item
+        - S
+        - - ci
+          - ")"
+      - |-
+        {
+                          def ast; CBOR::Simple.new(item.ast) end
+                        }
+- - "="
+  - uint
+  - - alt
+    - - ci
+      - '0'
+    - - seq
+      - DIGIT1
+      - - rep
+        - 0
+        - true
+        - DIGIT
+- - "="
+  - tagged
+  - - im
+    - - seq
+      - uint
+      - - ci
+        - "("
+      - S
+      - item
+      - S
+      - - ci
+        - ")"
+    - |-
+      {
+        def ast
+          CBOR::Tagged.new(uint.text_value.to_i, item.ast)
+        end
+      }
+- - "="
+  - app-prefix
+  - - seq
+    - lcalpha
+    - - rep
+      - 0
+      - true
+      - lcalnum
+- - "="
+  - app-string
+  - - im
+    - - seq
+      - app-prefix
+      - sqstr
+    - |-
+      {
+        def ast                       # XXX ignoring h and b64
+          data = sqstr.ast.force_encoding(Encoding::UTF_8) # XXX
+          app = app_prefix.text_value
+          # Find a better place to put a default initialization
+          EDNGRAMMAR.const_set(:APPS, Hash.new { |h, k|
+                                 h[k] = begin ::CBOR_DIAG.const_get("App_#{app}")
+                                        rescue NameError
+                                          raise ArgumentError.new("cbor-diagnostic: Unknown application-oriented extension #{k}")
+                                        end
+                               }) unless ::EDNGRAMMAR.const_defined?(:APPS)
+          ::EDNGRAMMAR::APPS[app].decode(app, data)
+        end
+      }
+- - "="
+  - sqstr
+  - - im
+    - - seq
+      - - ci
+        - "'"
+      - - rep
+        - 0
+        - true
+        - single-quoted
+      - - ci
+        - "'"
+    - "{\n  def ast\n    elements[1].elements.map {|x| x.ast}.join.b # XXX .b\n  end
+      \ \n}"
+- - "="
+  - bstr
+  - - alt
+    - app-string
+    - sqstr
+- - "="
+  - tstr
+  - - im
+    - - seq
+      - DQUOTE
+      - - rep
+        - 0
+        - true
+        - double-quoted
+      - DQUOTE
+    - |-
+      {
+        def ast
+          elements[1].elements.map {|x| x.ast}.join
+        end
+      }
+- - "="
+  - embedded
+  - - im
+    - - seq
+      - - ci
+        - !!str '<<'
+      - seq
+      - - ci
+        - ">>"
+    - |-
+      {
+        def ast
+          sn = seq.ast
+          if CBOR::Sequence === sn
+            sn.to_cborseq
+          else
+            CBOR.encode(sn)
+          end
+        end
+      }
+- - "="
+  - array
+  - - im
+    - - seq
+      - - ci
+        - "["
+      - spec
+      - - rep
+        - 0
+        - 1
+        - - seq
+          - item
+          - S
+          - - rep
+            - 0
+            - true
+            - - seq
+              - - ci
+                - ","
+              - S
+              - item
+              - S
+          - OC
+      - - ci
+        - "]"
+    - |-
+      {
+        def ast
+          r = if e = elements[2].elements
+                [e[0].ast] + e[2].elements.map {|x| x.item.ast }
+              else
+                []
+              end
+          if spec.ast
+            r.cbor_stream!
+          end
+          r
+        end
+      }
+- - "="
+  - map
+  - - im
+    - - seq
+      - - ci
+        - "{"
+      - spec
+      - - rep
+        - 0
+        - 1
+        - - seq
+          - kp
+          - S
+          - - rep
+            - 0
+            - true
+            - - seq
+              - - ci
+                - ","
+              - S
+              - kp
+              - S
+          - OC
+      - - ci
+        - "}"
+    - |-
+      {
+        def ast
+          r = if e = elements[2].elements
+                Hash[ [e[0].ast] + e[2].elements.map {|x| x.kp.ast } ]
+              else
+                {}
+              end
+          if spec.ast
+            r.cbor_stream!
+          end
+          r
+        end
+      }
+- - "="
+  - kp
+  - - im
+    - - seq
+      - item
+      - S
+      - - ci
+        - ":"
+      - S
+      - item
+    - |-
+      {
+        def ast
+          [elements[0].ast, elements[4].ast]
+        end
+      }
+- - "="
+  - blank
+  - - alt
+    - - cs
+      - "\t"
+    - - cs
+      - "\n"
+    - - cs
+      - "\r"
+    - - cs
+      - " "
+- - "="
+  - non-slash
+  - - alt
+    - blank
+    - - char-range
+      - "!"
+      - "."
+    - - char-range
+      - '0'
+      - "\U0010FFFF"
+- - "="
+  - S
+  - - seq
+    - - rep
+      - 0
+      - true
+      - blank
+    - - rep
+      - 0
+      - true
+      - - seq
+        - - ci
+          - "/"
+        - - rep
+          - 0
+          - true
+          - non-slash
+        - - ci
+          - "/"
+        - - rep
+          - 0
+          - true
+          - blank
+- - "="
+  - OC
+  - - rep
+    - 0
+    - 1
+    - - seq
+      - - ci
+        - ","
+      - S
+- - "="
+  - streamstring
+  - - alt
+    - - seq
+      - - ci
+        - "("
+      - spec1
+      - tstr
+      - S
+      - - rep
+        - 0
+        - true
+        - - seq
+          - - ci
+            - ","
+          - S
+          - tstr
+          - S
+      - OC
+      - - ci
+        - ")"
+    - - seq
+      - - ci
+        - "("
+      - spec1
+      - sqstr
+      - S
+      - - rep
+        - 0
+        - true
+        - - seq
+          - - ci
+            - ","
+          - S
+          - sqstr
+          - S
+      - OC
+      - - ci
+        - ")"
+- - "="
+  - spec
+  - - im
+    - - seq
+      - S
+      - - rep
+        - 0
+        - 1
+        - - seq
+          - - ci
+            - _
+          - S
+    - "{def ast; (e1 = elements[1].elements) && !e1[0].empty? end}"
+- - "="
+  - spec1
+  - - seq
+    - S
+    - - ci
+      - _
+    - S
+- - "="
+  - double-quoted
+  - - alt
+    - - im
+      - unescaped
+      - "{def ast; text_value end}"
+    - - im
+      - - ci
+        - "'"
+      - "{def ast; text_value end}"
+    - - im
+      - - seq
+        - - ci
+          - "\\"
+        - DQUOTE
+      - "{def ast; elements[1].text_value end}"
+    - - im
+      - - seq
+        - - ci
+          - "\\"
+        - escapable
+      - "{def ast; escapable.ast end}"
+- - "="
+  - single-quoted
+  - - alt
+    - - im
+      - unescaped
+      - "{def ast; text_value end}"
+    - - im
+      - DQUOTE
+      - "{def ast; text_value end}"
+    - - im
+      - - seq
+        - - ci
+          - "\\"
+        - - ci
+          - "'"
+      - "{def ast; elements[1].text_value end}"
+    - - im
+      - - seq
+        - - ci
+          - "\\"
+        - escapable
+      - "{def ast; escapable.ast end}"
+- - "="
+  - escapable
+  - - alt
+    - - im
+      - - cs
+        - b
+      - '{def ast; "\b" end}'
+    - - im
+      - - cs
+        - f
+      - '{def ast; "\f" end}'
+    - - im
+      - - cs
+        - "n"
+      - '{def ast; "\n" end}'
+    - - im
+      - - cs
+        - r
+      - '{def ast; "\r" end}'
+    - - im
+      - - cs
+        - t
+      - '{def ast; "\t" end}'
+    - - im
+      - - ci
+        - "/"
+      - "{def ast; text_value end}"
+    - - im
+      - - ci
+        - "\\"
+      - "{def ast; text_value end}"
+    - - im
+      - - seq
+        - - cs
+          - u
+        - hexchar
+      - "{def ast; hexchar.ast end}"
+- - "="
+  - hexchar
+  - - alt
+    - - im
+      - non-surrogate
+      - "{def ast; hex_value.chr(Encoding::UTF_8) end}"
+    - - im
+      - - seq
+        - high-surrogate
+        - - ci
+          - "\\"
+        - - cs
+          - u
+        - low-surrogate
+      - |-
+        {
+          def ast
+            ((high_surrogate.ast << 10) + low_surrogate.ast + 0x10000).chr(Encoding::UTF_8)
+          end
+        }
+- - "="
+  - non-surrogate
+  - - alt
+    - - seq
+      - - alt
+        - DIGIT
+        - - ci
+          - A
+        - - ci
+          - B
+        - - ci
+          - C
+        - - ci
+          - E
+        - - ci
+          - F
+      - - rep
+        - 3
+        - 3
+        - HEXDIG
+    - - seq
+      - - ci
+        - D
+      - ODIGIT
+      - - rep
+        - 2
+        - 2
+        - HEXDIG
+- - "="
+  - high-surrogate
+  - - im
+    - - seq
+      - - ci
+        - D
+      - - alt
+        - - ci
+          - '8'
+        - - ci
+          - '9'
+        - - ci
+          - A
+        - - ci
+          - B
+      - - rep
+        - 2
+        - 2
+        - HEXDIG
+    - "{def ast; hex_value - 0xD800 end}"
+- - "="
+  - low-surrogate
+  - - im
+    - - seq
+      - - ci
+        - D
+      - - alt
+        - - ci
+          - C
+        - - ci
+          - D
+        - - ci
+          - E
+        - - ci
+          - F
+      - - rep
+        - 2
+        - 2
+        - HEXDIG
+    - "{def ast; hex_value - 0xDC00 end}"
+- - "="
+  - unescaped
+  - - alt
+    - - cs
+      - "\n"
+    - - cs
+      - "\r"
+    - - char-range
+      - " "
+      - "!"
+    - - char-range
+      - "#"
+      - "&"
+    - - char-range
+      - "("
+      - "["
+    - - char-range
+      - "]"
+      - "\U0010FFFF"
+- - "="
+  - DQUOTE
+  - - cs
+    - "\""
+- - "="
+  - DIGIT
+  - - char-range
+    - '0'
+    - '9'
+- - "="
+  - DIGIT1
+  - - char-range
+    - '1'
+    - '9'
+- - "="
+  - ODIGIT
+  - - char-range
+    - '0'
+    - '7'
+- - "="
+  - BDIGIT
+  - - char-range
+    - '0'
+    - '1'
+- - "="
+  - HEXDIG
+  - - alt
+    - DIGIT
+    - - ci
+      - A
+    - - ci
+      - B
+    - - ci
+      - C
+    - - ci
+      - D
+    - - ci
+      - E
+    - - ci
+      - F
+- - "="
+  - lcalpha
+  - - char-range
+    - a
+    - z
+- - "="
+  - lcalnum
+  - - alt
+    - lcalpha
+    - DIGIT
+- - "="
+  - ALPHA
+  - - alt
+    - - char-range
+      - A
+      - Z
+    - lcalpha

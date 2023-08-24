@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+require 'pp'
+require 'yaml'
+require 'treetop'
+require 'json'
+
+require_relative '../lib/edn-abnf.rb'
+
+def snaky(name)
+  name.gsub(/-/, "_")
+end
+ 
+Encoding.default_external = Encoding::UTF_8
+require 'optparse'
+require 'ostruct'
+
+$options = OpenStruct.new
+begin
+  op = OptionParser.new do |opts|
+    opts.banner = "Usage: edn-abnf.rb [options] [file.edn... | -]"
+
+    opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+      $options.verbose = v
+    end
+    opts.on("-tFMT", "--to=FMT", [:basic, :neat, :json, :yaml, :edn, :diag], "Target format") do |v|
+      $options.target = v
+    end
+  end
+  op.parse!
+rescue Exception => e
+  warn e
+  exit 1
+end
+
+if ARGV == []
+  puts op
+  exit 1
+end
+
+edn_file = ARGF.read
+
+edn = EDN.from_edn(edn_file)
+result = edn.tree               # XXX .tree?
+
+case $options.target
+when :basic, nil
+  pp result
+when :neat, :json
+  require 'neatjson'
+  puts JSON.neat_generate(result, after_comma: 1, after_colon: 1)
+when :yaml
+  puts result.to_yaml
+when :edn, :diag
+  puts result.cbor_diagnostic
+else
+  warn ["Unknown target format: ", $options.target].inspect
+end
