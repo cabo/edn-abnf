@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "edn-abnf"
-  s.version = "0.0.2"
+  s.version = "0.0.3"
   s.summary = "CDDL (Concise Data Definition Language) converters and miscellaneous tools"
   s.description = %q{edn-abnf implements converters and miscellaneous tools for CBOR EDN's ABNF}
   s.author = "Carsten Bormann"
@@ -14,6 +14,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_development_dependency 'bundler', '~>1'
+  s.add_development_dependency 'abnftt', '~>0.2'
   s.add_dependency 'treetop', '~>1'
   s.add_dependency 'json', '~>2'
   s.add_dependency 'neatjson', '~>0.10'
