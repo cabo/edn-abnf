@@ -1,6 +1,8 @@
 task :default => :build
 
-targets = ["lib/parser/edngrammar.rb", "lib/cbor-diagnostic-app/hgrammar.rb"]
+subgrammars = Dir["lib/cbor-diagnostic-app/*.abnftt"].map {|x| x.sub(/[.]abnftt$/, '.rb')}
+p subgrammars
+targets = ["lib/parser/edngrammar.rb", *subgrammars]
 
 task :i => targets  do
   sh "time gebuin edn-abnf.gemspec"
