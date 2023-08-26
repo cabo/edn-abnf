@@ -1,9 +1,6 @@
 require 'cbor-diagnostic'
 module CBOR_DIAG
 end
-require 'cbor-diagnostic-app/dt'
-require 'cbor-diagnostic-app/h'
-require 'cbor-diagnostic-app/b64'
 
 require 'treetop'
 require_relative './edngrammar'
@@ -19,3 +16,8 @@ class Treetop::Runtime::SyntaxNode
     text_value.to_i(16)
   end
 end
+
+
+require 'cbor-diagnostic-app/dt'
+require 'cbor-diagnostic-app/h'
+require 'cbor-diagnostic-app/b64'

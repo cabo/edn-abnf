@@ -1,0 +1,11 @@
+app-string-h    = S *(HEXDIG S HEXDIG S){
+  def ast
+    e1 = elements[1].elements
+    e1.map {|e| Integer(e.elements[0].text_value + e.elements[2].text_value, 16).chr("BINARY")}.join.b
+  end
+}
+HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+DIGIT           = %x30-39 ; 0-9
+blank           = %x09 / %x0A / %x0D / %x20
+non-slash       = blank / %x21-2e / %x30-10FFFF
+S               = *blank *("/" *non-slash "/" *blank )
