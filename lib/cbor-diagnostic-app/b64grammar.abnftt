@@ -1,0 +1,8 @@
+app-string-b64  = B *(4(b64dig B))
+                  [b64dig B b64dig B ["=" B "=" / b64dig B ["="]] B]
+b64dig          = ALPHA / DIGIT / "-" / "_" / "+" / "/"
+B               = *iblank
+iblank          = %x0A / %x20  ; Not HT or CR (gone)
+lcalpha         = %x61-7A ; a-z
+ALPHA           = %x41-5A / lcalpha   ; A-Z / a-z
+DIGIT           = %x30-39 ; 0-9
