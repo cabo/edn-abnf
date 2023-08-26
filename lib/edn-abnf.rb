@@ -5,9 +5,10 @@ class EDN
 
   def self.reason(parser, s)
     reason = [parser.failure_reason]
-    parser.failure_reason =~ /^(Expected .+) after/m
-    reason << "#{$1.gsub("\n", '<<<NEWLINE>>>')}:" if $1
+    parser.failure_reason =~ /^(Expected .+) after ./m
+    expected = $1
     if line = s.lines.to_a[parser.failure_line - 1]
+      reason << "#{$1.gsub("\n", '<<<NEWLINE>>>')}:" if expected
       reason << line
       reason << "#{'~' * (parser.failure_column - 1)}^"
     end
@@ -17,7 +18,7 @@ class EDN
   def self.from_edn(s)
     ast = @@parser.parse s
     if !ast
-      fail self.reason(@@parser, s)
+      raise ArgumentError, "Parse Error:\n" << self.reason(@@parser, s)
     end
     ret = EDN.new(ast)
     ret
