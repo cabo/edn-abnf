@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "edn-abnf"
-  s.version = "0.0.6"
+  s.version = "0.0.7"
   s.summary = "CDDL (Concise Data Definition Language) converters and miscellaneous tools"
   s.description = %q{edn-abnf implements converters and miscellaneous tools for CBOR EDN's ABNF}
   s.author = "Carsten Bormann"

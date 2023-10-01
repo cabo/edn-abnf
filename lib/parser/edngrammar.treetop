@@ -154,7 +154,10 @@ rule non_lf
 ("\t" / "\r" / [\ -퟿] / [-􏿿])
 end
 rule S
-(blank* ("/" non_slash* "/" blank*)*)
+(blank* (comment blank*)*)
+end
+rule comment
+(("/" non_slash* "/") / ("#" non_lf* "\n"))
 end
 rule OC
 ("," S)?
