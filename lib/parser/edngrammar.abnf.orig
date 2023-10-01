@@ -6,6 +6,7 @@ item            = map / array / tagged
 sign            = "+" / "-"
 decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]
 basenumber      = [sign] "0" ("x" 1*HEXDIG
+                              [["." 1*HEXDIG] "p" [sign] *DIGIT]
                             / "o" 1*ODIGIT
                             / "b" 1*BDIGIT)
 infin           = %s"Infinity"
@@ -90,4 +91,3 @@ HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
-ALPHA           = %x41-5A / lcalpha   ; A-Z / a-z

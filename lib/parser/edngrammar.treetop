@@ -37,8 +37,8 @@ rule decnumber
 }
 end
 rule basenumber
-(sign? "0" (("x"i HEXDIG+) / ("o"i ODIGIT+) / ("b"i BDIGIT+))) {
-  def ast; Integer(text_value) end
+(sign? "0" (("x"i HEXDIG+ (("." HEXDIG+)? "p"i sign? DIGIT*)?) / ("o"i ODIGIT+) / ("b"i BDIGIT+))) {
+  def ast; /p/i =~ text_value ? Float(text_value) : Integer(text_value) end
 }
 end
 rule infin
@@ -216,9 +216,6 @@ rule lcalpha
 end
 rule lcalnum
 (lcalpha / DIGIT)
-end
-rule ALPHA
-([A-Z] / lcalpha)
 end
 
 end

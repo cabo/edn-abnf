@@ -30,9 +30,10 @@ decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]{
   end
 }
 basenumber      = [sign] "0" ("x" 1*HEXDIG
+                              [["." 1*HEXDIG] "p" [sign] *DIGIT]
                             / "o" 1*ODIGIT
                             / "b" 1*BDIGIT){
-  def ast; Integer(text_value) end
+  def ast; /p/i =~ text_value ? Float(text_value) : Integer(text_value) end
 }
 infin           = %s"Infinity"{ def ast; Float::INFINITY end }
                 / %s"-Infinity"{ def ast; -Float::INFINITY end }
@@ -184,4 +185,3 @@ HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
-ALPHA           = %x41-5A / lcalpha   ; A-Z / a-z
