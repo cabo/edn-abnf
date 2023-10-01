@@ -157,7 +157,7 @@ rule OC
 ("," S)?
 end
 rule streamstring
-(("(" spec1 tstr S ("," S tstr S)* OC ")") / ("(" spec1 sqstr S ("," S sqstr S)* OC ")"))
+(("(" spec1 tstr S ("," S tstr S)* OC ")") / ("(" spec1 bstr S ("," S bstr S)* OC ")"))
 end
 rule spec
 (S ("_" S)?) {def ast; (e1 = elements[1].elements) && !e1[0].empty? end}
