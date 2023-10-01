@@ -80,7 +80,8 @@ unescaped       = %x0A ; new line
                      ; omit 0x27 '
                 / %x28-5B
                      ; omit 0x5C \
-                / %x5D-10FFFF
+                / %x5D-D7FF ; skip surrogate code points
+                / %xE000-10FFFF
 
 DQUOTE          = %x22    ; " double quote
 DIGIT           = %x30-39 ; 0-9

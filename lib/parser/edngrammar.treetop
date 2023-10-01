@@ -148,7 +148,10 @@ rule blank
 ("\t" / "\n" / "\r" / " ")
 end
 rule non_slash
-(blank / [!-\.] / [0-􏿿])
+(blank / [!-\.] / [0-퟿] / [-􏿿])
+end
+rule non_lf
+("\t" / "\r" / [\ -퟿] / [-􏿿])
 end
 rule S
 (blank* ("/" non_slash* "/" blank*)*)
@@ -191,7 +194,7 @@ rule low_surrogate
 ("D"i ("C"i / "D"i / "E"i / "F"i) HEXDIG 2..2) {def ast; hex_value - 0xDC00 end}
 end
 rule unescaped
-("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-􏿿])
+("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-퟿] / [-􏿿])
 end
 rule DQUOTE
 "\""
