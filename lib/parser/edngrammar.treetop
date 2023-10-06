@@ -17,7 +17,21 @@ rule seq
 }
 end
 rule item
-(map / array / tagged / basenumber / decnumber / infin / simple / tstr / bstr / embedded / streamstring)
+(map / array / tagged / number / simple / string / streamstring)
+end
+rule number
+((basenumber / decnumber / infin) spec) {
+  def ast
+    elements[0].ast
+  end
+}
+end
+rule string
+((tstr / bstr) spec) {
+  def ast
+    elements[0].ast
+  end
+}
 end
 rule sign
 ("+" / "-")
@@ -53,7 +67,7 @@ rule uint
 ("0" / (DIGIT1 DIGIT*))
 end
 rule tagged
-(uint "(" S item S ")") {
+(uint spec "(" S item S ")") {
   def ast
     CBOR::Tagged.new(uint.text_value.to_i, item.ast)
   end
@@ -82,11 +96,11 @@ rule sqstr
 ("'" single_quoted* "'") {
   def ast
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
-  end  
+  end
 }
 end
 rule bstr
-(app_string / sqstr)
+(app_string / sqstr / embedded)
 end
 rule tstr
 (DQUOTE double_quoted* DQUOTE) {
@@ -115,8 +129,12 @@ rule array
         else
           []
         end
-    if spec.ast
-      r.cbor_stream!
+    if ei = spec.ast
+       if ei == ""
+         r.cbor_stream!
+       else
+         warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
+       end
     end
     r
   end
@@ -130,8 +148,12 @@ rule map
         else
           {}
         end
-    if spec.ast
-      r.cbor_stream!
+    if ei = spec.ast
+       if ei == ""
+         r.cbor_stream!
+       else
+         warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after \x7b"
+       end
     end
     r
   end
@@ -163,13 +185,25 @@ rule OC
 ("," S)?
 end
 rule streamstring
-(("(" spec1 tstr S ("," S tstr S)* OC ")") / ("(" spec1 bstr S ("," S bstr S)* OC ")"))
+("(" spec1 string S ("," S string S)* OC ")") {
+  def ast
+    strings = [elements[2].ast] + elements[4].elements.map {|x| x.string.ast }
+    unless Set[*strings.map(&:encoding)].size == 1
+      warn "** mixed streamstring #{strings.cbor_diagnostic}"
+    end
+    strings.join.cbor_stream!(strings.map(&:size))
+  end
+}
 end
 rule spec
-(S ("_" S)?) {def ast; (e1 = elements[1].elements) && !e1[0].empty? end}
+("_" wordchar* S)? {def ast;
+                    if (e1 = elements[1].elements) && !e1[0].empty?
+                      e1[1].text_value
+                    end
+                  end}
 end
 rule spec1
-(S "_" S)
+("_" S)
 end
 rule double_quoted
 (unescaped {def ast; text_value end} / "'" {def ast; text_value end} / ("\\" DQUOTE) {def ast; elements[1].text_value end} / ("\\" escapable) {def ast; escapable.ast end})
@@ -222,6 +256,9 @@ rule lcalpha
 end
 rule lcalnum
 (lcalpha / DIGIT)
+end
+rule wordchar
+("_" / lcalnum / [A-Z])
 end
 
 end

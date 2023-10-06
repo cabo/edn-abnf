@@ -1,7 +1,10 @@
 seq             = S [item S *("," S item S) OC] S
 item            = map / array / tagged
-                / basenumber / decnumber / infin / simple
-                / tstr / bstr / embedded / streamstring
+                / number / simple
+                / string / streamstring
+
+number          = (basenumber / decnumber / infin) spec
+string          = (tstr / bstr) spec
 
 sign            = "+" / "-"
 decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]
@@ -18,12 +21,12 @@ simple          = %s"false"
                 / %s"undefined"
                 / %s"simple(" S item S ")"
 uint            = "0" / DIGIT1 *DIGIT
-tagged          = uint "(" S item S ")"
+tagged          = uint spec "(" S item S ")"
 
 app-prefix      = lcalpha *lcalnum ; including h and b64
 app-string      = app-prefix sqstr
 sqstr           = "'" *single-quoted "'"
-bstr            = app-string / sqstr ; app could be any type
+bstr            = app-string / sqstr / embedded; app could be any type
 tstr            = DQUOTE *double-quoted DQUOTE
 embedded        = "<<" seq ">>"
 
@@ -42,11 +45,11 @@ comment         = "/" *non-slash "/"
 ; optional trailing comma (ignored)
 OC              = ["," S]
 
+; check semantically that strings are either all text or all bytes
 ; note that there must be at least one string to distinguish
-streamstring    = "(" spec1 tstr S *("," S tstr S) OC ")"
-                / "(" spec1 bstr S *("," S bstr S) OC ")"
-spec            = S ["_" S]
-spec1           = S "_" S
+streamstring    = "(" spec1 string S *("," S string S) OC ")"
+spec            = ["_" *wordchar S]
+spec1           = "_" S
 
 double-quoted   = unescaped
                 / "'"
@@ -95,3 +98,4 @@ HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
+wordchar        = "_" / lcalnum / %x41-5a ; [_a-z0-9A-Z]

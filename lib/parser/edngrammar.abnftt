@@ -13,8 +13,19 @@ seq             = S [item S *("," S item S) OC] S{
   end
 }
 item            = map / array / tagged
-                / basenumber / decnumber / infin / simple
-                / tstr / bstr / embedded / streamstring
+                / number / simple
+                / string / streamstring
+
+number          = (basenumber / decnumber / infin) spec{
+  def ast
+    elements[0].ast
+  end
+}
+string          = (tstr / bstr) spec{
+  def ast
+    elements[0].ast
+  end
+}
 
 sign            = "+" / "-"
 decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]{
@@ -46,7 +57,7 @@ simple          = %s"false"{ def ast; false end }
                   def ast; CBOR::Simple.new(item.ast) end
                 }
 uint            = "0" / DIGIT1 *DIGIT
-tagged          = uint "(" S item S ")"{
+tagged          = uint spec "(" S item S ")"{
   def ast
     CBOR::Tagged.new(uint.text_value.to_i, item.ast)
   end
@@ -70,9 +81,9 @@ app-string      = app-prefix sqstr{
 sqstr           = "'" *single-quoted "'"{
   def ast
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
-  end  
+  end
 }
-bstr            = app-string / sqstr ; app could be any type
+bstr            = app-string / sqstr / embedded; app could be any type
 tstr            = DQUOTE *double-quoted DQUOTE{
   def ast
     elements[1].elements.map {|x| x.ast}.join
@@ -96,8 +107,12 @@ array           = "[" spec [item S *("," S item S) OC] "]"{
         else
           []
         end
-    if spec.ast
-      r.cbor_stream!
+    if ei = spec.ast
+       if ei == ""
+         r.cbor_stream!
+       else
+         warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
+       end
     end
     r
   end
@@ -109,8 +124,12 @@ map             = "{" spec [kp S *("," S kp S) OC] "}"{
         else
           {}
         end
-    if spec.ast
-      r.cbor_stream!
+    if ei = spec.ast
+       if ei == ""
+         r.cbor_stream!
+       else
+         warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after \x7b"
+       end
     end
     r
   end
@@ -132,11 +151,23 @@ comment         = "/" *non-slash "/"
 ; optional trailing comma (ignored)
 OC              = ["," S]
 
+; check semantically that strings are either all text or all bytes
 ; note that there must be at least one string to distinguish
-streamstring    = "(" spec1 tstr S *("," S tstr S) OC ")"
-                / "(" spec1 bstr S *("," S bstr S) OC ")"
-spec            = S ["_" S]{def ast; (e1 = elements[1].elements) && !e1[0].empty? end}
-spec1           = S "_" S
+streamstring    = "(" spec1 string S *("," S string S) OC ")"{
+  def ast
+    strings = [elements[2].ast] + elements[4].elements.map {|x| x.string.ast }
+    unless Set[*strings.map(&:encoding)].size == 1
+      warn "*** mixed streamstring #{strings.cbor_diagnostic}"
+    end
+    strings.join.cbor_stream!(strings.map(&:size))
+  end
+}
+spec            = ["_" *wordchar S]{def ast;
+                    if (e1 = elements[1].elements) && !e1[0].empty?
+                      e1[1].text_value
+                    end
+                  end}
+spec1           = "_" S
 
 double-quoted   = unescaped{def ast; text_value end}
                 / "'"{def ast; text_value end}
@@ -189,3 +220,4 @@ HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
+wordchar        = "_" / lcalnum / %x41-5a ; [_a-z0-9A-Z]
