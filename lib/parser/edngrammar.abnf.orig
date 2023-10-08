@@ -30,8 +30,8 @@ bstr            = app-string / sqstr / embedded; app could be any type
 tstr            = DQUOTE *double-quoted DQUOTE
 embedded        = "<<" seq ">>"
 
-array           = "[" spec [item S *("," S item S) OC] "]"
-map             = "{" spec [kp S *("," S kp S) OC] "}"
+array           = "[" spec S [item S *("," S item S) OC] "]"
+map             = "{" spec S [kp S *("," S kp S) OC] "}"
 kp              = item S ":" S item
 
 ; We allow %x09 HT in prose, but not in strings
@@ -47,9 +47,8 @@ OC              = ["," S]
 
 ; check semantically that strings are either all text or all bytes
 ; note that there must be at least one string to distinguish
-streamstring    = "(" spec1 string S *("," S string S) OC ")"
-spec            = ["_" *wordchar S]
-spec1           = "_" S
+streamstring    = "(_" S string S *("," S string S) OC ")"
+spec            = ["_" *wordchar]
 
 double-quoted   = unescaped
                 / "'"

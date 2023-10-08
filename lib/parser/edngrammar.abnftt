@@ -18,11 +18,17 @@ item            = map / array / tagged
 
 number          = (basenumber / decnumber / infin) spec{
   def ast
+    if ei = spec.text_value[1..-1]
+       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
+    end
     elements[0].ast
   end
 }
 string          = (tstr / bstr) spec{
   def ast
+    if ei = spec.text_value[1..-1]
+       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
+    end
     elements[0].ast
   end
 }
@@ -59,6 +65,9 @@ simple          = %s"false"{ def ast; false end }
 uint            = "0" / DIGIT1 *DIGIT
 tagged          = uint spec "(" S item S ")"{
   def ast
+    if ei = spec.text_value[1..-1]
+       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after tag number #{uint.text_value}"
+    end
     CBOR::Tagged.new(uint.text_value.to_i, item.ast)
   end
 }
@@ -100,14 +109,15 @@ embedded        = "<<" seq ">>"{
   end
 }
 
-array           = "[" spec [item S *("," S item S) OC] "]"{
+array           = "[" spec S [item S *("," S item S) OC] "]"{
   def ast
-    r = if e = elements[2].elements
+    r = if e = elements[3].elements
           [e[0].ast] + e[2].elements.map {|x| x.item.ast }
         else
           []
         end
-    if ei = spec.ast
+    if ei = spec.text_value[1..-1]
+       #       warn "** ei #{ei.inspect}"
        if ei == ""
          r.cbor_stream!
        else
@@ -117,14 +127,14 @@ array           = "[" spec [item S *("," S item S) OC] "]"{
     r
   end
 }
-map             = "{" spec [kp S *("," S kp S) OC] "}"{
+map             = "{" spec S [kp S *("," S kp S) OC] "}"{
   def ast
-    r = if e = elements[2].elements
+    r = if e = elements[3].elements
           Hash[ [e[0].ast] + e[2].elements.map {|x| x.kp.ast } ]
         else
           {}
         end
-    if ei = spec.ast
+    if ei = spec.text_value[1..-1]
        if ei == ""
          r.cbor_stream!
        else
@@ -153,7 +163,7 @@ OC              = ["," S]
 
 ; check semantically that strings are either all text or all bytes
 ; note that there must be at least one string to distinguish
-streamstring    = "(" spec1 string S *("," S string S) OC ")"{
+streamstring    = "(_" S string S *("," S string S) OC ")"{
   def ast
     strings = [elements[2].ast] + elements[4].elements.map {|x| x.string.ast }
     unless Set[*strings.map(&:encoding)].size == 1
@@ -162,12 +172,7 @@ streamstring    = "(" spec1 string S *("," S string S) OC ")"{
     strings.join.cbor_stream!(strings.map(&:size))
   end
 }
-spec            = ["_" *wordchar S]{def ast;
-                    if (e1 = elements[1].elements) && !e1[0].empty?
-                      e1[1].text_value
-                    end
-                  end}
-spec1           = "_" S
+spec            = ["_" *wordchar]
 
 double-quoted   = unescaped{def ast; text_value end}
                 / "'"{def ast; text_value end}
