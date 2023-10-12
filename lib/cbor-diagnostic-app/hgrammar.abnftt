@@ -1,9 +1,38 @@
-app-string-h    = S *(HEXDIG S HEXDIG S){
+app-string-h    = S *(HEXDIG S HEXDIG S{
   def ast
-    e1 = elements[1].elements
-    e1.map {|e| Integer(e.elements[0].text_value + e.elements[2].text_value, 16).chr("BINARY")}.join.b
+    Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
+  end
+} / ellipsis S{def ast; ellipsis.ast end}){
+  def unpack_thread(s)
+    case s[0]
+    when CBOR::Tagged
+      s[0]
+    when String
+      s.join
+    else
+      raise "@@@ unpack_thread #{s.inspect}"
+    end
+  end
+  def ast
+    e1 = elements[1].elements.map {|e| e.ast}
+    out = []
+    curr = []
+    e1.each { |el|
+      if curr.size == 0 || curr[0].class == el.class
+        curr << el
+      else
+        out << curr
+        curr = [el]
+      end
+    }
+    if out.size == 0 && String === curr[0]
+      curr.join # unpack_thread(curr)
+    else
+      CBOR::Tagged.new(888, (out << curr).map {|x| unpack_thread(x)})
+    end
   end
 }
+ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end}
 HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 DIGIT           = %x30-39 ; 0-9
 blank           = %x09 / %x0A / %x0D / %x20
