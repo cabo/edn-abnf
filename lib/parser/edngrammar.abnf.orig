@@ -4,7 +4,10 @@ item            = map / array / tagged
                 / string / streamstring
 
 number          = (basenumber / decnumber / infin) spec
-string          = (tstr / bstr) spec
+string1         = (tstr / bstr) spec
+string1e        = string1 / ellipsis
+ellipsis        = 3*"."
+string          = string1e *(S string1e)
 
 sign            = "+" / "-"
 decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]

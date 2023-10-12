@@ -24,12 +24,47 @@ number          = (basenumber / decnumber / infin) spec{
     elements[0].ast
   end
 }
-string          = (tstr / bstr) spec{
+string1         = (tstr / bstr) spec{
   def ast
     if ei = spec.text_value[1..-1]
        warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
     end
     elements[0].ast
+  end
+}
+string1e        = string1 / ellipsis
+ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end}
+string          = string1e *(S string1e){
+  def join1(s)
+    s.join # XXX -- look at encoding and ei
+  end
+  def unpack_thread(s)
+    case s[0]
+    when CBOR::Tagged
+      s[0]
+    when String
+      join1(s)
+    else
+      raise "@@@ unpack_thread #{s.inspect}"
+    end
+  end
+  def ast
+    arr = [elements[0].ast] + elements[1].elements.map {|x| x.elements[1].ast}
+    if Set[*arr.map(&:class)] == Set[String]
+      join1(arr)
+    else
+      out = []
+      curr = []
+      arr.each { |el|
+        if curr.size == 0 || curr[0].class == el.class
+          curr << el
+        else
+          out << curr
+          curr = [el]
+        end
+      }
+      CBOR::Tagged.new(888, (out << curr).map {|x| unpack_thread(x)})
+    end
   end
 }
 
