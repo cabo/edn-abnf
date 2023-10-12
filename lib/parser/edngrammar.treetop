@@ -54,8 +54,8 @@ rule string
     if c == String
       join1(s)
     else
-      unless c == CBOR::Tagged && s.first.tag == 888 && s.first.value == nil
-        raise "@@@ unjoinable chunks #{c.inspect} #{s.inspect}" if s.size != 1
+      unless c == CBOR::Tagged && s.first.tag == 888 && s.first.value == nil # XXX check all values?
+        raise "*** unjoinable chunks #{c.inspect} #{s.inspect}" if s.size != 1
       end
       s.first
     end
