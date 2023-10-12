@@ -3,4 +3,7 @@ HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 DIGIT           = %x30-39 ; 0-9
 blank           = %x09 / %x0A / %x0D / %x20
 non-slash       = blank / %x21-2e / %x30-10FFFF
-S               = *blank *("/" *non-slash "/" *blank )
+non-lf          = %x09 / %x0D / %x20-D7FF / %xE000-10FFFF
+S               = *blank *(comment *blank )
+comment         = "/" *non-slash "/"
+                / "#" *non-lf %x0A
