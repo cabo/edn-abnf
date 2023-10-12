@@ -38,32 +38,23 @@ string          = string1e *(S string1e){
   def join1(s)
     s.join # XXX -- look at encoding and ei
   end
-  def unpack_thread(s)
-    case s[0]
-    when CBOR::Tagged
-      s[0]
-    when String
+  def unpack_chunk(c, s)
+    if c == String
       join1(s)
     else
-      raise "@@@ unpack_thread #{s.inspect}"
+      unless c == CBOR::Tagged && s.first.tag == 888 && s.first.value == nil # XXX check all values?
+        raise "*** unjoinable chunks #{c.inspect} #{s.inspect}" if s.size != 1
+      end
+      s.first
     end
   end
   def ast
     arr = [elements[0].ast] + elements[1].elements.map {|x| x.elements[1].ast}
-    if Set[*arr.map(&:class)] == Set[String]
-      join1(arr)
+    charr = arr.chunk(&:class).to_a
+    if charr.size == 1
+      unpack_chunk(*charr.first)
     else
-      out = []
-      curr = []
-      arr.each { |el|
-        if curr.size == 0 || curr[0].class == el.class
-          curr << el
-        else
-          out << curr
-          curr = [el]
-        end
-      }
-      CBOR::Tagged.new(888, (out << curr).map {|x| unpack_thread(x)})
+      CBOR::Tagged.new(888, charr.map {|x| unpack_chunk(*x)})
     end
   end
 }

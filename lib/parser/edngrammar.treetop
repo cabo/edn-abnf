@@ -29,13 +29,45 @@ rule number
   end
 }
 end
-rule string
+rule string1
 ((tstr / bstr) spec) {
   def ast
     if ei = spec.text_value[1..-1]
        warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
     end
     elements[0].ast
+  end
+}
+end
+rule string1e
+(string1 / ellipsis)
+end
+rule ellipsis
+"." 3.. { def ast; CBOR::Tagged.new(888, nil) end}
+end
+rule string
+(string1e (S string1e)*) {
+  def join1(s)
+    s.join # XXX -- look at encoding and ei
+  end
+  def unpack_chunk(c, s)
+    if c == String
+      join1(s)
+    else
+      unless c == CBOR::Tagged && s.first.tag == 888 && s.first.value == nil
+        raise "@@@ unjoinable chunks #{c.inspect} #{s.inspect}" if s.size != 1
+      end
+      s.first
+    end
+  end
+  def ast
+    arr = [elements[0].ast] + elements[1].elements.map {|x| x.elements[1].ast}
+    charr = arr.chunk(&:class).to_a
+    if charr.size == 1
+      unpack_chunk(*charr.first)
+    else
+      CBOR::Tagged.new(888, charr.map {|x| unpack_chunk(*x)})
+    end
   end
 }
 end
