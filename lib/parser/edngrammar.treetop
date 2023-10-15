@@ -115,7 +115,7 @@ rule tagged
 }
 end
 rule app_prefix
-(lcalpha lcalnum*)
+((lcalpha lcalnum*) / (ucalpha ucalnum*))
 end
 rule app_string
 (app_prefix sqstr) {
@@ -124,7 +124,8 @@ rule app_string
     app = app_prefix.text_value
     # Find a better place to put a default initialization
     EDNGRAMMAR.const_set(:APPS, Hash.new { |h, k|
-                           h[k] = begin ::CBOR_DIAG.const_get("App_#{app}")
+                           h[k] = begin ::CBOR_DIAG.const_get("App_#{app.downcase}")
+
                                   rescue NameError
                                     raise ArgumentError, "cbor-diagnostic: Unknown application-oriented extension '#{k}'", caller
                                   end
@@ -292,8 +293,14 @@ end
 rule lcalnum
 (lcalpha / DIGIT)
 end
+rule ucalpha
+[A-Z]
+end
+rule ucalnum
+(ucalpha / DIGIT)
+end
 rule wordchar
-("_" / lcalnum / [A-Z])
+("_" / lcalnum / ucalpha)
 end
 
 end

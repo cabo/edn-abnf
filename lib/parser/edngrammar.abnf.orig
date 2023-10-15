@@ -27,6 +27,7 @@ uint            = "0" / DIGIT1 *DIGIT
 tagged          = uint spec "(" S item S ")"
 
 app-prefix      = lcalpha *lcalnum ; including h and b64
+                / ucalpha *ucalnum ; tagged variant, if defined
 app-string      = app-prefix sqstr
 sqstr           = "'" *single-quoted "'"
 bstr            = app-string / sqstr / embedded; app could be any type
@@ -100,4 +101,6 @@ HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
-wordchar        = "_" / lcalnum / %x41-5a ; [_a-z0-9A-Z]
+ucalpha         = %x41-5A ; A-Z
+ucalnum         = ucalpha / DIGIT
+wordchar        = "_" / lcalnum / ucalpha ; [_a-z0-9A-Z]

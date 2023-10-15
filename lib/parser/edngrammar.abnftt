@@ -99,13 +99,15 @@ tagged          = uint spec "(" S item S ")"{
 }
 
 app-prefix      = lcalpha *lcalnum ; including h and b64
+                / ucalpha *ucalnum ; tagged variant, if defined
 app-string      = app-prefix sqstr{
   def ast                       # XXX ignoring h and b64
     data = sqstr.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
     app = app_prefix.text_value
     # Find a better place to put a default initialization
     EDNGRAMMAR.const_set(:APPS, Hash.new { |h, k|
-                           h[k] = begin ::CBOR_DIAG.const_get("App_#{app}")
+                           h[k] = begin ::CBOR_DIAG.const_get("App_#{app.downcase}")
+
                                   rescue NameError
                                     raise ArgumentError, "cbor-diagnostic: Unknown application-oriented extension '#{k}'", caller
                                   end
@@ -251,4 +253,6 @@ HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
-wordchar        = "_" / lcalnum / %x41-5a ; [_a-z0-9A-Z]
+ucalpha         = %x41-5A ; A-Z
+ucalnum         = ucalpha / DIGIT
+wordchar        = "_" / lcalnum / ucalpha ; [_a-z0-9A-Z]

@@ -19,5 +19,6 @@ end
 
 
 require 'cbor-diagnostic-app/dt'
+require 'cbor-diagnostic-app/ip'
 require 'cbor-diagnostic-app/h'
 require 'cbor-diagnostic-app/b64'

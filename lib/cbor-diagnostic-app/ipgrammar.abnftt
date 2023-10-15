@@ -1,0 +1,50 @@
+app-string-ip = IPaddress ["/" uint]{
+  def ast
+    fam, addr = elements[0].ast
+    prefix = elements[1].text_value
+    if prefix.empty?
+      [fam, addr]
+    else
+      prefixlength = Integer(prefix[1..-1])
+      masked_addr = IPAddr.new_ntoh(addr).mask(prefixlength).hton
+      i = addr.size
+      while addr.getbyte(i-1) == 0
+        break if (i -= 1) == 0
+      end
+      short_addr = addr[0...i]
+      if masked_addr != addr
+        warn "*** dt'': non-zero bits outside of prefix #{prefixlength}: #{short_addr.bytes.map{|x| "%02x" % x}.join}"
+      end
+      [fam, [prefixlength, short_addr]]
+    end
+  end
+}
+
+IPaddress     = IPv4address{def ast; [52, IPAddr.new(text_value).hton] end}
+              / IPv6address{def ast; [54, IPAddr.new(text_value).hton] end}
+
+; ABNF from RFC 3986, re-arranged for PEG compatibility:
+
+IPv6address   =                            6( h16 ":" ) ls32
+              /                       "::" 5( h16 ":" ) ls32
+              / [ h16               ] "::" 4( h16 ":" ) ls32
+              / [ h16 *1( ":" h16 ) ] "::" 3( h16 ":" ) ls32
+              / [ h16 *2( ":" h16 ) ] "::" 2( h16 ":" ) ls32
+              / [ h16 *3( ":" h16 ) ] "::"    h16 ":"   ls32
+              / [ h16 *4( ":" h16 ) ] "::"              ls32
+              / [ h16 *5( ":" h16 ) ] "::"              h16
+              / [ h16 *6( ":" h16 ) ] "::"
+
+h16           = 1*4HEXDIG
+ls32          = ( h16 ":" h16 ) / IPv4address
+IPv4address   = dec-octet "." dec-octet "." dec-octet "." dec-octet
+dec-octet     = "25" %x30-35         ; 250-255
+              / "2" %x30-34 DIGIT    ; 200-249
+              / "1" 2DIGIT           ; 100-199
+              / %x31-39 DIGIT        ; 10-99
+              / DIGIT                ; 0-9
+
+HEXDIG        = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+DIGIT         = %x30-39 ; 0-9
+DIGIT1        = %x31-39 ; 1-9
+uint          = "0" / DIGIT1 *DIGIT
