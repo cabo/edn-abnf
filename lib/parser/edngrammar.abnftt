@@ -106,7 +106,7 @@ app-string      = app-prefix sqstr{
     app = app_prefix.text_value
     # Find a better place to put a default initialization
     EDNGRAMMAR.const_set(:APPS, Hash.new { |h, k|
-                           h[k] = begin ::CBOR_DIAG.const_get("App_#{app.downcase}")
+                           h[k] = begin ::CBOR_DIAG.const_get("App_#{k.downcase}")
 
                                   rescue NameError
                                     raise ArgumentError, "cbor-diagnostic: Unknown application-oriented extension '#{k}'", caller
