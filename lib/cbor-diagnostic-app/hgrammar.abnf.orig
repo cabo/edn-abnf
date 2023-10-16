@@ -1,4 +1,5 @@
 app-string-h    = S *(HEXDIG S HEXDIG S / ellipsis S)
+                  ["#" *non-lf]
 ellipsis        = 3*"."
 HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 DIGIT           = %x30-39 ; 0-9

@@ -2,7 +2,8 @@ app-string-h    = S *(HEXDIG S HEXDIG S{
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
-} / ellipsis S{def ast; ellipsis.ast end}){
+} / ellipsis S{def ast; ellipsis.ast end})
+                  ["#" *non-lf]{
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
