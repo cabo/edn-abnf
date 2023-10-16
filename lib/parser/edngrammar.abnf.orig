@@ -3,12 +3,12 @@ item            = map / array / tagged
                 / number / simple
                 / string / streamstring
 
-number          = (basenumber / decnumber / infin) spec
 string1         = (tstr / bstr) spec
 string1e        = string1 / ellipsis
-ellipsis        = 3*"."
+ellipsis        = 3*"." ; "..." or more dots
 string          = string1e *(S string1e)
 
+number          = (basenumber / decnumber / infin) spec
 sign            = "+" / "-"
 decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]
 basenumber      = [sign] "0" ("x" 1*HEXDIG

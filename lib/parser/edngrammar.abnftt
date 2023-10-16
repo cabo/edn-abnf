@@ -16,14 +16,6 @@ item            = map / array / tagged
                 / number / simple
                 / string / streamstring
 
-number          = (basenumber / decnumber / infin) spec{
-  def ast
-    if ei = spec.text_value[1..-1]
-       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
-    end
-    elements[0].ast
-  end
-}
 string1         = (tstr / bstr) spec{
   def ast
     if ei = spec.text_value[1..-1]
@@ -33,7 +25,8 @@ string1         = (tstr / bstr) spec{
   end
 }
 string1e        = string1 / ellipsis
-ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end}
+ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end
+} ; "..." or more dots
 string          = string1e *(S string1e){
   def join1(s)
     s.join # XXX -- look at encoding and ei
@@ -59,6 +52,14 @@ string          = string1e *(S string1e){
   end
 }
 
+number          = (basenumber / decnumber / infin) spec{
+  def ast
+    if ei = spec.text_value[1..-1]
+       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
+    end
+    elements[0].ast
+  end
+}
 sign            = "+" / "-"
 decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]{
   def ast

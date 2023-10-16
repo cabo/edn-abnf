@@ -19,16 +19,6 @@ end
 rule item
 (map / array / tagged / number / simple / string / streamstring)
 end
-rule number
-((basenumber / decnumber / infin) spec) {
-  def ast
-    if ei = spec.text_value[1..-1]
-       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
-    end
-    elements[0].ast
-  end
-}
-end
 rule string1
 ((tstr / bstr) spec) {
   def ast
@@ -43,7 +33,8 @@ rule string1e
 (string1 / ellipsis)
 end
 rule ellipsis
-"." 3.. { def ast; CBOR::Tagged.new(888, nil) end}
+"." 3.. { def ast; CBOR::Tagged.new(888, nil) end
+}
 end
 rule string
 (string1e (S string1e)*) {
@@ -68,6 +59,16 @@ rule string
     else
       CBOR::Tagged.new(888, charr.map {|x| unpack_chunk(*x)})
     end
+  end
+}
+end
+rule number
+((basenumber / decnumber / infin) spec) {
+  def ast
+    if ei = spec.text_value[1..-1]
+       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
+    end
+    elements[0].ast
   end
 }
 end
