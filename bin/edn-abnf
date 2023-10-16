@@ -58,7 +58,7 @@ edn_file = $options.edn
 if $options.lines
   CSV.parse(edn_file) do |ok, edn, out|
     if ok[0] == "#"
-      puts "# #{ok}, #{edn}, #{out}" if $options.verbose
+      puts "# #{ok}, #{edn.inspect}, #{out}" if $options.verbose
       next
     end
     begin

@@ -8,7 +8,7 @@ class CBOR_DIAG::App_b64
       raise ArgumentError, "cbor-diagnostic: Parse Error in b64'#{s}':\n" << EDN.reason(parser, s)
     end
     # lazy -- not using parse tree...:
-    t = s.gsub(/\s/, '').chars.each_slice(4).map(&:join)
+    t = s.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
     if last = t[-1]
       last << "=" * (4 - last.size)
     end
