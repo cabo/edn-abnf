@@ -6,7 +6,7 @@ class CBOR_DIAG::App_ip
     parser = IPGRAMMARParser.new
     ast = parser.parse(s)
     if !ast
-      raise ArgumentError, "cbor-diagnostic: Parse Error in h'#{s}':\n" << EDN.reason(parser, s)
+      raise ArgumentError, "cbor-diagnostic: Parse Error in ip'#{s}':\n" << EDN.reason(parser, s)
     end
     fam, ipv = ast.ast
     case app_prefix
@@ -18,5 +18,4 @@ class CBOR_DIAG::App_ip
       fail app_prefix
     end
   end
-# s.gsub(/#.*|\s|\/[^\/]*\//, "").chars.each_slice(2).map{ |x| Integer(x.join, 16).chr("BINARY") }.join
 end

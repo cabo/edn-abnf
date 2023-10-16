@@ -7,7 +7,7 @@ require 'time'
 # Probably should copy over Time#xmlschema and fix that for us.
 
 class CBOR_DIAG::App_dt
-  def self.decode(_, s)
+  def self.decode(app_prefix, s)
     parser = DTGRAMMARParser.new
     ast = parser.parse(s)
     if !ast
@@ -16,10 +16,18 @@ class CBOR_DIAG::App_dt
     # ast.ast
 
     t = Time.iso8601(s)
-    if t.subsec != 0
+    tv = if t.subsec != 0
       t.to_f
     else
       t.to_i
+    end
+    case app_prefix
+    when 'dt'
+      tv
+    when 'DT'
+      CBOR::Tagged.new(1, tv)
+    else
+      fail app_prefix
     end
   end
 end
