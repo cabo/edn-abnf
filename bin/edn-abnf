@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# coding: utf-8-hfs
 require 'pp'
 require 'yaml'
 require 'treetop'
@@ -22,6 +23,13 @@ begin
     opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
       $options.verbose = v
     end
+    opts.on("-l", "--[no-]lines", "multi-line mode") do |v|
+      require 'csv'
+      $options.lines = v
+    end
+    opts.on("-eEDN", "--e=EDN", "supply EDN on command line") do |v|
+      $options.edn = v
+    end
     opts.on("-tFMT", "--to=FMT", [:basic, :neat, :json, :yaml, :edn, :diag], "Target format") do |v|
       $options.target = v
     end
@@ -32,12 +40,51 @@ rescue Exception => e
   exit 1
 end
 
-if ARGV == []
-  puts op
-  exit 1
+
+if !$options.edn
+  if ARGV == []
+    puts op
+    exit 1
+  end
+  $options.edn = ARGF.read
+else
+  if ARGV != []
+    warn "*** file names #{ARGV.join(", ")} ignored due to -e given"
+  end
 end
 
-edn_file = ARGF.read
+edn_file = $options.edn
+
+if $options.lines
+  CSV.parse(edn_file) do |ok, edn, out|
+    if ok[0] == "#"
+      puts "# #{ok}, #{edn}, #{out}" if $options.verbose
+      next
+    end
+    begin
+      ok = ok == "="
+      puts "➔ #{ok}, #{edn}, #{out}" if $options.verbose
+      edn = EDN.from_edn(edn)
+      result = edn.tree
+      diag = result.cbor_diagnostic
+      if out == diag && !ok
+          puts "** ≠ / #{diag.inspect} / #{out.inspect}"
+      end
+      if out != diag && ok
+          puts "** ≡ / #{diag.inspect} / #{out.inspect}"
+      end
+    rescue ArgumentError => e
+      if ok
+        puts "** #{e} / #{result.inspect} / #{out.inspect}"
+      else
+        if $options.verbose
+          puts "expected failure #{e}"
+        end
+      end
+    end
+  end
+  exit
+end
 
 begin
   edn = EDN.from_edn(edn_file)

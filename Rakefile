@@ -4,6 +4,13 @@ subgrammars = Dir["lib/cbor-diagnostic-app/*.abnftt"].map {|x| x.sub(/[.]abnftt$
 p subgrammars
 targets = ["lib/parser/edngrammar.rb", *subgrammars]
 
+task :t do
+  sh "edn-abnf -l tests/basic.csv"
+end
+task :v do
+  sh "edn-abnf -vl tests/basic.csv"
+end
+
 task :i => targets  do
   sh "time gebuin edn-abnf.gemspec"
 end
