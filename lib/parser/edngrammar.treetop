@@ -252,7 +252,7 @@ rule escapable
 ("b" {def ast; "\b" end} / "f" {def ast; "\f" end} / "n" {def ast; "\n" end} / "r" {def ast; "\r" end} / "t" {def ast; "\t" end} / "/" {def ast; text_value end} / "\\" {def ast; text_value end} / ("u" hexchar) {def ast; hexchar.ast end})
 end
 rule hexchar
-(non_surrogate {def ast; hex_value.chr(Encoding::UTF_8) end} / (high_surrogate "\\" "u" low_surrogate) {
+(("{" (("0"+ hexscalar?) / hexscalar) "}") {def ast; elements[1].hex_value.chr(Encoding::UTF_8) end} / non_surrogate {def ast; hex_value.chr(Encoding::UTF_8) end} / (high_surrogate "\\" "u" low_surrogate) {
   def ast
     ((high_surrogate.ast << 10) + low_surrogate.ast + 0x10000).chr(Encoding::UTF_8)
   end
@@ -266,6 +266,9 @@ rule high_surrogate
 end
 rule low_surrogate
 ("D"i ("C"i / "D"i / "E"i / "F"i) HEXDIG 2..2) {def ast; hex_value - 0xDC00 end}
+end
+rule hexscalar
+(("10" HEXDIG 4..4) / (HEXDIG1 HEXDIG 4..4) / non_surrogate / HEXDIG 1..3)
 end
 rule unescaped
 ("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-퟿] / [-􏿿])
@@ -287,6 +290,9 @@ rule BDIGIT
 end
 rule HEXDIG
 (DIGIT / "A"i / "B"i / "C"i / "D"i / "E"i / "F"i)
+end
+rule HEXDIG1
+(DIGIT1 / "A"i / "B"i / "C"i / "D"i / "E"i / "F"i)
 end
 rule lcalpha
 [a-z]

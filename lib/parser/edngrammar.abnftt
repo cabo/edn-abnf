@@ -222,7 +222,8 @@ escapable       = %s"b"{def ast; "\b" end} ; BS backspace U+0008
                 / "\"{def ast; text_value end}   ; \ backslash (reverse solidus) U+005C
                 / (%s"u" hexchar){def ast; hexchar.ast end} ;  uXXXX      U+XXXX
 
-hexchar         = non-surrogate{def ast; hex_value.chr(Encoding::UTF_8) end}
+hexchar         = "{" (1*"0" [ hexscalar ] / hexscalar) "}"{def ast; elements[1].hex_value.chr(Encoding::UTF_8) end}
+                / non-surrogate{def ast; hex_value.chr(Encoding::UTF_8) end}
                 / (high-surrogate "\" %s"u" low-surrogate){
   def ast
     ((high_surrogate.ast << 10) + low_surrogate.ast + 0x10000).chr(Encoding::UTF_8)
@@ -232,6 +233,7 @@ non-surrogate   = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
                 / ("D" ODIGIT 2HEXDIG )
 high-surrogate  = "D" ("8"/"9"/"A"/"B") 2HEXDIG{def ast; hex_value - 0xD800 end}
 low-surrogate   = "D" ("C"/"D"/"E"/"F") 2HEXDIG{def ast; hex_value - 0xDC00 end}
+hexscalar       = "10" 4HEXDIG / HEXDIG1 4HEXDIG / non-surrogate / 1*3HEXDIG
 
 ; Note that no other C0 characters are allowed, including %x09 HT
 unescaped       = %x0A ; new line
@@ -251,6 +253,7 @@ DIGIT1          = %x31-39 ; 1-9
 ODIGIT          = %x30-37 ; 0-7
 BDIGIT          = %x30-31 ; 0-1
 HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+HEXDIG1         = DIGIT1 / "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT

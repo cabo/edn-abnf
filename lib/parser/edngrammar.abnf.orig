@@ -73,12 +73,14 @@ escapable       = %s"b" ; BS backspace U+0008
                 / "\"   ; \ backslash (reverse solidus) U+005C
                 / (%s"u" hexchar) ;  uXXXX      U+XXXX
 
-hexchar         = non-surrogate
+hexchar         = "{" (1*"0" [ hexscalar ] / hexscalar) "}"
+                / non-surrogate
                 / (high-surrogate "\" %s"u" low-surrogate)
 non-surrogate   = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
                 / ("D" ODIGIT 2HEXDIG )
 high-surrogate  = "D" ("8"/"9"/"A"/"B") 2HEXDIG
 low-surrogate   = "D" ("C"/"D"/"E"/"F") 2HEXDIG
+hexscalar       = "10" 4HEXDIG / HEXDIG1 4HEXDIG / non-surrogate / 1*3HEXDIG
 
 ; Note that no other C0 characters are allowed, including %x09 HT
 unescaped       = %x0A ; new line
@@ -98,6 +100,7 @@ DIGIT1          = %x31-39 ; 1-9
 ODIGIT          = %x30-37 ; 0-7
 BDIGIT          = %x30-31 ; 0-1
 HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+HEXDIG1         = DIGIT1 / "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
