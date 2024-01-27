@@ -10,9 +10,11 @@ string          = string1e *(S string1e)
 
 number          = (basenumber / decnumber / infin) spec
 sign            = "+" / "-"
-decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]
+decnumber       = [sign] (1*DIGIT ["." *DIGIT] / "." 1*DIGIT)
+                         ["e" [sign] 1*DIGIT]
 basenumber      = [sign] "0" ("x" 1*HEXDIG
-                              [["." 1*HEXDIG] "p" [sign] 1*DIGIT]
+                              [["." *HEXDIG] "p" [sign] 1*DIGIT]
+                            / "x" "." 1*HEXDIG "p" [sign] 1*DIGIT
                             / "o" 1*ODIGIT
                             / "b" 1*BDIGIT)
 infin           = %s"Infinity"

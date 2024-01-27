@@ -76,22 +76,23 @@ rule sign
 ("+" / "-")
 end
 rule decnumber
-(sign? DIGIT+ ("." DIGIT+)? ("e"i sign? DIGIT+)?) {
+(sign? ((DIGIT+ ("." DIGIT*)?) / ("." DIGIT+)) ("e"i sign? DIGIT+)?) {
   def ast
-    ip = elements[0].text_value + elements[1].text_value
-    dp = elements[2].text_value
-    ep = elements[3].text_value
-    if dp.empty? && ep.empty?
-      ip.to_i
+    tv = text_value
+    if /[.e]/i =~ tv
+      sp = elements[0].text_value
+      mp = elements[1].text_value.sub(/\A\./, "0.").sub(/\.\z/, ".0")
+      ep = elements[2].text_value
+      (sp + mp + ep).to_f
     else
-      (ip + dp + ep).to_f
+      tv.to_i
     end
   end
 }
 end
 rule basenumber
-(sign? "0" (("x"i HEXDIG+ (("." HEXDIG+)? "p"i sign? DIGIT+)?) / ("o"i ODIGIT+) / ("b"i BDIGIT+))) {
-  def ast; /p/i =~ text_value ? Float(text_value) : Integer(text_value) end
+(sign? "0" (("x"i HEXDIG+ (("." HEXDIG*)? "p"i sign? DIGIT+)?) / ("x"i "." HEXDIG+ "p"i sign? DIGIT+) / ("o"i ODIGIT+) / ("b"i BDIGIT+))) {
+  def ast; /p/i =~ text_value ? Float(text_value.sub(/x\./i, "x0.").sub(/\.p/i, ".0p")) : Integer(text_value) end
 }
 end
 rule infin
