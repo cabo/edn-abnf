@@ -74,7 +74,7 @@ decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]{
   end
 }
 basenumber      = [sign] "0" ("x" 1*HEXDIG
-                              [["." 1*HEXDIG] "p" [sign] *DIGIT]
+                              [["." 1*HEXDIG] "p" [sign] 1*DIGIT]
                             / "o" 1*ODIGIT
                             / "b" 1*BDIGIT){
   def ast; /p/i =~ text_value ? Float(text_value) : Integer(text_value) end
@@ -121,7 +121,8 @@ sqstr           = "'" *single-quoted "'"{
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
   end
 }
-bstr            = app-string / sqstr / embedded; app could be any type
+bstr            = app-string / sqstr / embedded
+                  ; app-string could be any type
 tstr            = DQUOTE *double-quoted DQUOTE{
   def ast
     elements[1].elements.map {|x| x.ast}.join

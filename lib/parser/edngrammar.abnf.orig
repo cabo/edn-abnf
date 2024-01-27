@@ -12,7 +12,7 @@ number          = (basenumber / decnumber / infin) spec
 sign            = "+" / "-"
 decnumber       = [sign] 1*DIGIT ["." 1*DIGIT] ["e" [sign] 1*DIGIT]
 basenumber      = [sign] "0" ("x" 1*HEXDIG
-                              [["." 1*HEXDIG] "p" [sign] *DIGIT]
+                              [["." 1*HEXDIG] "p" [sign] 1*DIGIT]
                             / "o" 1*ODIGIT
                             / "b" 1*BDIGIT)
 infin           = %s"Infinity"
@@ -30,7 +30,8 @@ app-prefix      = lcalpha *lcalnum ; including h and b64
                 / ucalpha *ucalnum ; tagged variant, if defined
 app-string      = app-prefix sqstr
 sqstr           = "'" *single-quoted "'"
-bstr            = app-string / sqstr / embedded; app could be any type
+bstr            = app-string / sqstr / embedded
+                  ; app-string could be any type
 tstr            = DQUOTE *double-quoted DQUOTE
 embedded        = "<<" seq ">>"
 
