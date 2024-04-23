@@ -26,8 +26,8 @@ app-string-h    = S *(HEXDIG S HEXDIG S{
         curr = [el]
       end
     }
-    if out.size == 0 && String === curr[0]
-      curr.join # unpack_thread(curr)
+    if out.size == 0 && (curr.size == 0 || String === curr[0])
+      curr.join.b # unpack_thread(curr)
     else
       CBOR::Tagged.new(888, (out << curr).map {|x| unpack_thread(x)})
     end
