@@ -1,4 +1,4 @@
-seq             = S [item S *("," S item S) OC] S{
+seq             = S [item S *("," S item S) OC]{
   def ast
     r = if e = elements[1].elements
           [e[0].ast] + e[2].elements.map {|x| x.item.ast }
@@ -237,7 +237,8 @@ non-surrogate   = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
                 / ("D" ODIGIT 2HEXDIG )
 high-surrogate  = "D" ("8"/"9"/"A"/"B") 2HEXDIG{def ast; hex_value - 0xD800 end}
 low-surrogate   = "D" ("C"/"D"/"E"/"F") 2HEXDIG{def ast; hex_value - 0xDC00 end}
-hexscalar       = "10" 4HEXDIG / HEXDIG1 4HEXDIG / non-surrogate / 1*3HEXDIG
+hexscalar       = "10" 4HEXDIG / HEXDIG1 4HEXDIG
+                / non-surrogate / 1*3HEXDIG
 
 ; Note that no other C0 characters are allowed, including %x09 HT
 unescaped       = %x0A ; new line

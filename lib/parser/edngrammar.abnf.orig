@@ -1,4 +1,4 @@
-seq             = S [item S *("," S item S) OC] S
+seq             = S [item S *("," S item S) OC]
 item            = map / array / tagged
                 / number / simple
                 / string / streamstring
@@ -83,7 +83,8 @@ non-surrogate   = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
                 / ("D" ODIGIT 2HEXDIG )
 high-surrogate  = "D" ("8"/"9"/"A"/"B") 2HEXDIG
 low-surrogate   = "D" ("C"/"D"/"E"/"F") 2HEXDIG
-hexscalar       = "10" 4HEXDIG / HEXDIG1 4HEXDIG / non-surrogate / 1*3HEXDIG
+hexscalar       = "10" 4HEXDIG / HEXDIG1 4HEXDIG
+                / non-surrogate / 1*3HEXDIG
 
 ; Note that no other C0 characters are allowed, including %x09 HT
 unescaped       = %x0A ; new line

@@ -1,7 +1,7 @@
 # Encoding: UTF-8
 grammar EDNGRAMMAR
 rule seq
-(S (item S ("," S item S)* OC)? S) {
+(S (item S ("," S item S)* OC)?) {
   def ast
     r = if e = elements[1].elements
           [e[0].ast] + e[2].elements.map {|x| x.item.ast }
