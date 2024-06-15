@@ -1,4 +1,4 @@
-seq             = S [item S *("," S item S) OC]{
+seq             = S [item S *(OC item S) OC]{
   def ast
     r = if e = elements[1].elements
           [e[0].ast] + e[2].elements.map {|x| x.item.ast }
@@ -27,7 +27,7 @@ string1         = (tstr / bstr) spec{
 string1e        = string1 / ellipsis
 ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end
 } ; "..." or more dots
-string          = string1e *(S string1e){
+string          = string1e *(S "+" S string1e){
   def join1(s)
     s.join # XXX -- look at encoding and ei
   end
@@ -42,7 +42,7 @@ string          = string1e *(S string1e){
     end
   end
   def ast
-    arr = [elements[0].ast] + elements[1].elements.map {|x| x.elements[1].ast}
+    arr = [elements[0].ast] + elements[1].elements.map {|x| x.elements[3].ast}
     charr = arr.chunk(&:class).to_a
     if charr.size == 1
       unpack_chunk(*charr.first)
@@ -142,7 +142,7 @@ embedded        = "<<" seq ">>"{
   end
 }
 
-array           = "[" spec S [item S *("," S item S) OC] "]"{
+array           = "[" spec S [item S *(OC item S) OC] "]"{
   def ast
     r = if e = elements[3].elements
           [e[0].ast] + e[2].elements.map {|x| x.item.ast }
@@ -160,7 +160,7 @@ array           = "[" spec S [item S *("," S item S) OC] "]"{
     r
   end
 }
-map             = "{" spec S [kp S *("," S kp S) OC] "}"{
+map             = "{" spec S [kp S *(OC kp S) OC] "}"{
   def ast
     r = if e = elements[3].elements
           Hash[ [e[0].ast] + e[2].elements.map {|x| x.kp.ast } ]
@@ -196,7 +196,7 @@ OC              = ["," S]
 
 ; check semantically that strings are either all text or all bytes
 ; note that there must be at least one string to distinguish
-streamstring    = "(_" S string S *("," S string S) OC ")"{
+streamstring    = "(_" S string S *(OC string S) OC ")"{
   def ast
     strings = [elements[2].ast] + elements[4].elements.map {|x| x.string.ast }
     unless Set[*strings.map(&:encoding)].size == 1
