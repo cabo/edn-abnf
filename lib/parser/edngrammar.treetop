@@ -244,10 +244,10 @@ rule spec
 ("_" wordchar*)?
 end
 rule double_quoted
-(unescaped {def ast; text_value end} / "'" {def ast; text_value end} / ("\\" DQUOTE) {def ast; elements[1].text_value end} / ("\\" escapable) {def ast; escapable.ast end})
+(unescaped {def ast; text_value.gsub("\r", "") end} / "'" {def ast; text_value end} / ("\\" DQUOTE) {def ast; elements[1].text_value end} / ("\\" escapable) {def ast; escapable.ast end})
 end
 rule single_quoted
-(unescaped {def ast; text_value end} / DQUOTE {def ast; text_value end} / ("\\" "'") {def ast; elements[1].text_value end} / ("\\" escapable) {def ast; escapable.ast end})
+(unescaped {def ast; text_value.gsub("\r", "") end} / DQUOTE {def ast; text_value end} / ("\\" "'") {def ast; elements[1].text_value end} / ("\\" escapable) {def ast; escapable.ast end})
 end
 rule escapable
 ("b" {def ast; "\b" end} / "f" {def ast; "\f" end} / "n" {def ast; "\n" end} / "r" {def ast; "\r" end} / "t" {def ast; "\t" end} / "/" {def ast; text_value end} / "\\" {def ast; text_value end} / ("u" hexchar) {def ast; hexchar.ast end})

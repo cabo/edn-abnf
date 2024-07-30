@@ -207,12 +207,12 @@ streamstring    = "(_" S string S *(OC string S) OC ")"{
 }
 spec            = ["_" *wordchar]
 
-double-quoted   = unescaped{def ast; text_value end}
+double-quoted   = unescaped{def ast; text_value.gsub("\r", "") end}
                 / "'"{def ast; text_value end}
                 / "\" DQUOTE{def ast; elements[1].text_value end}
                 / "\" escapable{def ast; escapable.ast end}
 
-single-quoted   = unescaped{def ast; text_value end}
+single-quoted   = unescaped{def ast; text_value.gsub("\r", "") end}
                 / DQUOTE{def ast; text_value end}
                 / "\" "'"{def ast; elements[1].text_value end}
                 / "\" escapable{def ast; escapable.ast end}
