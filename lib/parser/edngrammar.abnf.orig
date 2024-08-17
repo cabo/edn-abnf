@@ -1,4 +1,4 @@
-seq             = S [item S *("," S item S) OC]
+seq             = S [item S *(OC item S) OC]
 item            = map / array / tagged
                 / number / simple
                 / string / streamstring
@@ -6,7 +6,7 @@ item            = map / array / tagged
 string1         = (tstr / bstr) spec
 string1e        = string1 / ellipsis
 ellipsis        = 3*"." ; "..." or more dots
-string          = string1e *(S string1e)
+string          = string1e *(S "+" S string1e)
 
 number          = (basenumber / decnumber / infin) spec
 sign            = "+" / "-"
@@ -37,8 +37,8 @@ bstr            = app-string / sqstr / embedded
 tstr            = DQUOTE *double-quoted DQUOTE
 embedded        = "<<" seq ">>"
 
-array           = "[" spec S [item S *("," S item S) OC] "]"
-map             = "{" spec S [kp S *("," S kp S) OC] "}"
+array           = "[" spec S [item S *(OC item S) OC] "]"
+map             = "{" spec S [kp S *(OC kp S) OC] "}"
 kp              = item S ":" S item
 
 ; We allow %x09 HT in prose, but not in strings
@@ -54,7 +54,7 @@ OC              = ["," S]
 
 ; check semantically that strings are either all text or all bytes
 ; note that there must be at least one string to distinguish
-streamstring    = "(_" S string S *("," S string S) OC ")"
+streamstring    = "(_" S string S *(OC string S) OC ")"
 spec            = ["_" *wordchar]
 
 double-quoted   = unescaped
