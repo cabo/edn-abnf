@@ -49,7 +49,7 @@ S               = *blank *(comment *blank)
 comment         = "/" *non-slash "/"
                 / "#" *non-lf %x0A
 
-; optional trailing comma (ignored)
+; optional comma (ignored)
 OC              = ["," S]
 
 ; check semantically that strings are either all text or all bytes
