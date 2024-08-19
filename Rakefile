@@ -1,7 +1,7 @@
 task :default => :build
 
 subgrammars = Dir["lib/cbor-diagnostic-app/*.abnftt"].map {|x| x.sub(/[.]abnftt$/, '.rb')}
-p subgrammars
+p subgrammars.map {|x| File.basename(x, ".rb")}
 targets = ["lib/parser/edngrammar.rb", *subgrammars]
 
 task :t do
