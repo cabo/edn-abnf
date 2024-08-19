@@ -56,22 +56,26 @@ end
 edn_file = $options.edn
 
 if $options.lines
-  CSV.parse(edn_file) do |ok, edn, out|
+  CSV.parse(edn_file) do |ok, ednin, out|
     if ok[0] == "#"
-      puts "# #{ok}, #{edn.inspect}, #{out}" if $options.verbose
+      puts "# #{ok}, #{ednin.inspect}, #{out}" if $options.verbose
       next
     end
     begin
       ok = ok == "="
-      puts "➔ #{ok}, #{edn}, #{out}" if $options.verbose
-      edn = EDN.from_edn(edn)
+      puts "➔ #{ok}, #{ednin}, #{out}" if $options.verbose
+      edn = EDN.from_edn(ednin)
       result = edn.tree
       diag = result.cbor_diagnostic
       if out == diag && !ok
           puts "** ≠ / #{diag.inspect} / #{out.inspect}"
       end
       if out != diag && ok
-          puts "** ≡ / #{diag.inspect} / #{out.inspect}"
+        outdiag = EDN.from_edn(out).tree.cbor_diagnostic
+        if outdiag != diag
+          puts "** ≡ / #{ednin.inspect} #{diag.inspect} / #{out.inspect} #{outdiag.inspect}"
+        end
+        puts "reparsed / #{diag.inspect} / #{out.inspect}" if $options.verbose
       end
     rescue ArgumentError => e
       if ok
