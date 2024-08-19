@@ -63,7 +63,7 @@ rule string
 }
 end
 rule number
-((basenumber / decnumber / infin) spec) {
+((hexfloat / hexint / octint / binint / decnumber / nonfin) spec) {
   def ast
     if ei = spec.text_value[1..-1]
        warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
@@ -90,12 +90,20 @@ rule decnumber
   end
 }
 end
-rule basenumber
-(sign? "0" (("x"i HEXDIG+ (("." HEXDIG*)? "p"i sign? DIGIT+)?) / ("x"i "." HEXDIG+ "p"i sign? DIGIT+) / ("o"i ODIGIT+) / ("b"i BDIGIT+))) {
-  def ast; /p/i =~ text_value ? Float(text_value.sub(/x\./i, "x0.").sub(/\.p/i, ".0p")) : Integer(text_value) end
-}
+rule hexfloat
+(sign? "0x"i ((HEXDIG+ ("." HEXDIG*)?) / ("." HEXDIG+)) "p"i sign? DIGIT+) {
+  def ast; Float(text_value.sub(/x\./i, "x0.").sub(/\.p/i, ".0p")) end}
 end
-rule infin
+rule hexint
+(sign? "0x"i HEXDIG+) { def ast; Integer(text_value) end}
+end
+rule octint
+(sign? "0o"i ODIGIT+) { def ast; Integer(text_value) end}
+end
+rule binint
+(sign? "0b"i BDIGIT+) { def ast; Integer(text_value) end}
+end
+rule nonfin
 ("Infinity" { def ast; Float::INFINITY end } / "-Infinity" { def ast; -Float::INFINITY end } / "NaN" { def ast; Float::NAN end })
 end
 rule simple
