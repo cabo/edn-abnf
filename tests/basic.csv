@@ -1,6 +1,17 @@
 #OK,newedn,oldedn
+x,1,01
+x,-1,20
+#x,"""foo""",33
+x,"""foo""",63666f6f
+x,'foo',43666f6f
+x,NaN,f97e00
+x,Infinity,f97c00
+x,-Infinity,f9fc00
+x,[],80
+x,{},a0
 =,1,1
 -,1,2
+x,0xFF.p9,fa47ff0000
 =,0xFF.p9,130560.0
 =,0o11,9
 =,0x11,17

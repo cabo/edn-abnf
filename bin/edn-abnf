@@ -10,7 +10,13 @@ require_relative '../lib/edn-abnf.rb'
 def snaky(name)
   name.gsub(/-/, "_")
 end
- 
+
+class String
+  def hexi
+    bytes.map{|x| "%02x" % x}.join
+  end
+end
+
 Encoding.default_external = Encoding::UTF_8
 require 'optparse'
 require 'ostruct'
@@ -59,6 +65,16 @@ if $options.lines
   CSV.parse(edn_file) do |ok, ednin, out|
     if ok[0] == "#"
       puts "# #{ok}, #{ednin.inspect}, #{out}" if $options.verbose
+      next
+    end
+    if ok[0] == "x"
+      result = EDN.from_edn(ednin).tree
+      result_hex = result.to_cbor.hexi
+      result_diag = result.cbor_diagnostic
+      puts "x #{ok}, #{ednin.inspect} / #{out} ➔ #{result_diag.inspect} / #{result_hex}" if $options.verbose
+      if result_hex != out
+          puts "** x / #{ednin.inspect} / #{out} ≠ #{result_diag.inspect} / #{result_hex}"
+      end
       next
     end
     begin
