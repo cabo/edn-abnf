@@ -102,7 +102,7 @@ x,0xFF.p9,fa47ff0000
 line'",h'6E65770A6C696E65'
 =,"""new
 line""","""new\nline"""
-=,"'new
-line'",h'6E65770A6C696E65'
-=,"""new
-line""","""new\nline"""
+=,h]276e65770d0a6c696e6527,h'6E65770A6C696E65'
+=,h]276e65770a6c696e6527,h'6E65770A6C696E65'
+=,h]226e65770d0a6c696e6522,"""new\nline"""
+=,h]226e65770a6c696e6522,"""new\nline"""

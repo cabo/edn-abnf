@@ -15,6 +15,16 @@ class String
   def hexi
     bytes.map{|x| "%02x" % x}.join
   end
+  def xeh
+    gsub(/\s/, "").chars.each_slice(2).map{ |x| Integer(x.join, 16).chr("BINARY") }.join
+  end
+end
+
+def tree_from_edn_possibly_hex(s)
+  if s[0..1] == "h]"
+    s = s[2..-1].xeh.force_encoding(Encoding::UTF_8)
+  end
+  EDN.from_edn(s).tree
 end
 
 Encoding.default_external = Encoding::UTF_8
@@ -68,7 +78,7 @@ if $options.lines
       next
     end
     if ok[0] == "x"
-      result = EDN.from_edn(ednin).tree
+      result = tree_from_edn_possibly_hex(ednin)
       result_hex = result.to_cbor.hexi
       result_diag = result.cbor_diagnostic
       puts "x #{ok}, #{ednin.inspect} / #{out} ➔ #{result_diag.inspect} / #{result_hex}" if $options.verbose
@@ -80,14 +90,13 @@ if $options.lines
     begin
       ok = ok == "="
       puts "➔ #{ok}, #{ednin}, #{out}" if $options.verbose
-      edn = EDN.from_edn(ednin)
-      result = edn.tree
+      result = tree_from_edn_possibly_hex(ednin)
       diag = result.cbor_diagnostic
       if out == diag && !ok
           puts "** ≠ / #{diag.inspect} / #{out.inspect}"
       end
       if out != diag && ok
-        outdiag = EDN.from_edn(out).tree.cbor_diagnostic
+        outdiag = tree_from_edn_possibly_hex(out).cbor_diagnostic
         if outdiag != diag
           puts "** ≡ / #{ednin.inspect} #{diag.inspect} / #{out.inspect} #{outdiag.inspect}"
         end
