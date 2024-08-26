@@ -46,7 +46,7 @@ begin
     opts.on("-eEDN", "--e=EDN", "supply EDN on command line") do |v|
       $options.edn = v
     end
-    opts.on("-tFMT", "--to=FMT", [:basic, :neat, :json, :yaml, :edn, :diag], "Target format") do |v|
+    opts.on("-tFMT", "--to=FMT", [:basic, :neat, :json, :yaml, :edn, :diag], "Target format (default: diag)") do |v|
       $options.target = v
     end
   end
@@ -124,14 +124,14 @@ rescue ArgumentError => e
 end
 
 case $options.target
-when :basic, nil
+when :basic
   pp result
 when :neat, :json
   require 'neatjson'
   puts JSON.neat_generate(result, after_comma: 1, after_colon: 1)
 when :yaml
   puts result.to_yaml
-when :edn, :diag
+when :edn, :diag, nil
   puts result.cbor_diagnostic
 else
   warn ["Unknown target format: ", $options.target].inspect
