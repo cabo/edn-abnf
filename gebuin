@@ -1,0 +1,11 @@
+for i
+do
+    gem build $i | 
+        while read fi fn
+        do
+            echo $fi $fn
+            case $fi in
+                 File:) gem install -V $fn
+            esac
+        done
+done
