@@ -12,7 +12,7 @@ task :v do
 end
 
 task :i => targets  do
-  sh "time gebuin edn-abnf.gemspec"
+  sh "time ./gebuin edn-abnf.gemspec"
 end
 
 task :build => targets do

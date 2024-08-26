@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "edn-abnf"
-  s.version = "0.2.5"
+  s.version = "0.3.1"
   s.summary = "CBOR Extended Diagnostic Notation (EDN) implemented in ABNF"
   s.description = %q{edn-abnf implements converters and miscellaneous tools for CBOR EDN's ABNF}
   s.author = "Carsten Bormann"
@@ -18,4 +18,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'treetop', '~>1'
   s.add_dependency 'json', '~>2'
   s.add_dependency 'neatjson', '~>0.10'
+  s.add_dependency 'cbor-diag'
 end
