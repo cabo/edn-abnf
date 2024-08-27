@@ -7,8 +7,8 @@ x,'foo',43666f6f
 x,NaN,f97e00
 x,Infinity,f97c00
 x,-Infinity,f9fc00
-#x,-0,f98000
-#x,-0x0,f98000
+=,-0,0
+=,-0x0,0
 x,-0.0,f98000
 x,-0.0e0,f98000
 x,1.125,f93c80
