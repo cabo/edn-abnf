@@ -5,10 +5,16 @@ p subgrammars.map {|x| File.basename(x, ".rb")}
 targets = ["lib/parser/edngrammar.rb", *subgrammars]
 
 task :t do
-  sh "edn-abnf -l tests/basic.csv"
+  Dir.glob("tests/*.csv") do |test|
+    puts "______________ testing #{test}"
+    sh "edn-abnf -l #{test}"
+  end
 end
 task :v do
-  sh "edn-abnf -vl tests/basic.csv"
+  Dir.glob("tests/*.csv") do |test|
+    puts "______________ testing #{test}"
+    sh "edn-abnf -vl #{test}"
+  end
 end
 
 task :i => targets  do
