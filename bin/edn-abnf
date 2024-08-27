@@ -100,7 +100,7 @@ if $options.lines
           puts "** ≠ / #{diag.inspect} / #{out.inspect}"
       end
       if out != diag && ok
-        outdiag = tree_from_edn_possibly_hex(out).cbor_diagnostic
+        outdiag = tree_from_edn_possibly_hex(out || "").cbor_diagnostic
         if outdiag != diag
           puts "** ≡ / #{ednin.inspect} #{diag.inspect} / #{out.inspect} #{outdiag.inspect}"
         end
