@@ -83,7 +83,11 @@ if $options.lines
       result_diag = result.cbor_diagnostic
       puts "x #{ok}, #{ednin.inspect} / #{out} ➔ #{result_diag.inspect} / #{result_hex}" if $options.verbose
       if result_hex != out
+        if  CBOR.decode(out.xeh).to_cbor == result.to_cbor
+          puts "** x variant / #{ednin.inspect} / #{out} ≠ #{result_diag.inspect} / #{result_hex}"
+        else
           puts "** x / #{ednin.inspect} / #{out} ≠ #{result_diag.inspect} / #{result_hex}"
+        end
       end
       next
     end
