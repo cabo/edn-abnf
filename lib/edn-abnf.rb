@@ -1,4 +1,5 @@
 require_relative "parser/edn-util.rb"
+require_relative "cbor-diag-support.rb"
 
 class EDN
   @@parser = EDNGRAMMARParser.new

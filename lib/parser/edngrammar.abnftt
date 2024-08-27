@@ -55,10 +55,13 @@ string          = string1e *(S "+" S string1e){
 number          = (hexfloat / hexint / octint / binint
                    / decnumber / nonfin) spec{
   def ast
+    val = elements[0].ast
+
     if ei = spec.text_value[1..-1]
-       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
+       # warn "*** implementing encoding indicator #{ei.inspect} for #{elements[0].text_value}"
+       val = CBOR::Box.from_number(val, {ei: ei})
     end
-    elements[0].ast
+    val
   end
 }
 sign            = "+" / "-"
