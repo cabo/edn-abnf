@@ -21,6 +21,13 @@ module CBOR
     def to_cbor
       CBOR.encode(value)
     end
+    def cbor_diagnostic(opts = {})
+      ret = value.cbor_diagnostic(opts)
+      if ei = options[:ei]
+        ret << "_#{ei}"
+      end
+      ret
+    end
   end
 
   class Ibox < Box
