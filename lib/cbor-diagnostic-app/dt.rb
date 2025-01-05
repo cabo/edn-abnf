@@ -13,10 +13,10 @@ class CBOR_DIAG::App_dt
     if !ast
       raise ArgumentError, "cbor-diagnostic: Parse Error in dt'#{s}':\n" << EDN.reason(parser, s)
     end
-    # ast.ast
+    frac = ast.has_frac != ""
 
     t = Time.iso8601(s)
-    tv = if t.subsec != 0
+    tv = if frac # t.subsec != 0
       t.to_f
     else
       t.to_i

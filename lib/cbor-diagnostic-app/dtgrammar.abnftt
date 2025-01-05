@@ -13,9 +13,9 @@ time-numoffset  = ("+" / "-") time-hour ":" time-minute
 time-offset     = "Z" / time-numoffset
 
 partial-time    = time-hour ":" time-minute ":" time-second
-                  [time-secfrac]
+                  [time-secfrac]{def has_frac; elements[5].text_value end}
 full-date       = date-fullyear "-" date-month "-" date-mday
-full-time       = partial-time time-offset
+full-time       = partial-time time-offset{def has_frac; partial_time.has_frac end}
 
-date-time       = full-date "T" full-time
+date-time       = full-date "T" full-time{def has_frac; full_time.has_frac end}
 DIGIT           =  %x30-39 ; 0-9
