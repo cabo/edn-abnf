@@ -122,7 +122,7 @@ app-string      = app-prefix sqstr{
     ::EDNGRAMMAR::APPS[app].decode(app, data)
   end
 }
-sqstr           = "'" *single-quoted "'"{
+sqstr           = SQUOTE *single-quoted SQUOTE{
   def ast
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
   end
@@ -211,13 +211,13 @@ streamstring    = "(_" S string S *(OC string S) OC ")"{
 spec            = ["_" *wordchar]
 
 double-quoted   = unescaped{def ast; text_value.gsub("\r", "") end}
-                / "'"{def ast; text_value end}
+                / SQUOTE{def ast; text_value end}
                 / "\" DQUOTE{def ast; elements[1].text_value end}
                 / "\" escapable{def ast; escapable.ast end}
 
 single-quoted   = unescaped{def ast; text_value.gsub("\r", "") end}
                 / DQUOTE{def ast; text_value end}
-                / "\" "'"{def ast; elements[1].text_value end}
+                / "\" SQUOTE{def ast; elements[1].text_value end}
                 / "\" escapable{def ast; escapable.ast end}
 
 escapable       = %s"b"{def ast; "\b" end} ; BS backspace U+0008
@@ -256,6 +256,7 @@ unescaped       = %x0A ; new line
                 / %xE000-10FFFF
 
 DQUOTE          = %x22    ; " double quote
+SQUOTE          = "'"     ; ' single quote
 DIGIT           = %x30-39 ; 0-9
 DIGIT1          = %x31-39 ; 1-9
 ODIGIT          = %x30-37 ; 0-7

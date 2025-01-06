@@ -32,7 +32,7 @@ tagged          = uint spec "(" S item S ")"
 app-prefix      = lcalpha *lcalnum ; including h and b64
                 / ucalpha *ucalnum ; tagged variant, if defined
 app-string      = app-prefix sqstr
-sqstr           = "'" *single-quoted "'"
+sqstr           = SQUOTE *single-quoted SQUOTE
 bstr            = app-string / sqstr / embedded
                   ; app-string could be any type
 tstr            = DQUOTE *double-quoted DQUOTE
@@ -59,13 +59,13 @@ streamstring    = "(_" S string S *(OC string S) OC ")"
 spec            = ["_" *wordchar]
 
 double-quoted   = unescaped
-                / "'"
+                / SQUOTE
                 / "\" DQUOTE
                 / "\" escapable
 
 single-quoted   = unescaped
                 / DQUOTE
-                / "\" "'"
+                / "\" SQUOTE
                 / "\" escapable
 
 escapable       = %s"b" ; BS backspace U+0008
@@ -100,6 +100,7 @@ unescaped       = %x0A ; new line
                 / %xE000-10FFFF
 
 DQUOTE          = %x22    ; " double quote
+SQUOTE          = "'"     ; ' single quote
 DIGIT           = %x30-39 ; 0-9
 DIGIT1          = %x31-39 ; 1-9
 ODIGIT          = %x30-37 ; 0-7
