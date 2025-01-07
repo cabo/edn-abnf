@@ -1,10 +1,10 @@
 # Encoding: UTF-8
 grammar EDNGRAMMAR
 rule seq
-(S (item S (OC item S)* OC)?) {
+(S (item (MSC item)* SOC)?) {
   def ast
     r = if e = elements[1].elements
-          [e[0].ast] + e[2].elements.map {|x| x.item.ast }
+          [e[0].ast] + e[1].elements.map {|x| x.item.ast }
         else
           []
         end
@@ -177,45 +177,56 @@ rule embedded
 }
 end
 rule array
-("[" spec S (item S (OC item S)* OC)? "]") {
+("[" ((specms S item (MSC item)* SOC) / (spec S)) "]") {
   def ast
-    r = if e = elements[3].elements
-          [e[0].ast] + e[2].elements.map {|x| x.item.ast }
-        else
-          []
-        end
-    if ei = spec.text_value[1..-1]
-       #       warn "** ei #{ei.inspect}"
-       if ei == ""
-         r.cbor_stream!
-       else
-         warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
-       end
+    e = elements[1] # alternative
+    ei = nil
+    if e.respond_to?(:specms)
+      if e.specms && e.specms.elements
+        ei = e.specms.elements[1].text_value
+      end
+      r = [e.item.ast] + e.elements[3].elements.map {|x| x.item.ast}
+    else
+      if e.spec && e.spec.elements
+        ei = e.spec.elements[1].text_value
+      end
+      r = []
+    end
+    if ei == ""
+      r.cbor_stream!
+    elsif ei
+      warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
     end
     r
   end
 }
 end
 rule map
-("{" spec S (kp S (OC kp S)* OC)? "}") {
+("{" ((specms S keyp (MSC keyp)* SOC) / (spec S)) "}") {
   def ast
-    r = if e = elements[3].elements
-          Hash[ [e[0].ast] + e[2].elements.map {|x| x.kp.ast } ]
-        else
-          {}
-        end
-    if ei = spec.text_value[1..-1]
-       if ei == ""
-         r.cbor_stream!
-       else
-         warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after \x7b"
-       end
+    e = elements[1] # alternative
+    ei = nil
+    if e.respond_to?(:specms)
+      if e.specms && e.specms.elements
+        ei = e.specms.elements[1].text_value
+      end
+      r = Hash[ [e.keyp.ast] + e.elements[3].elements.map {|x| x.keyp.ast } ]
+    else
+      if e.spec && e.spec.elements
+        ei = e.spec.elements[1].text_value
+      end
+      r = {}
+    end
+    if ei == ""
+      r.cbor_stream!
+    elsif ei
+      warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
     end
     r
   end
 }
 end
-rule kp
+rule keyp
 (item S ":" S item) {
   def ast
     [elements[0].ast, elements[4].ast]
@@ -231,19 +242,25 @@ end
 rule non_lf
 ("\t" / "\r" / [\ -퟿] / [-􏿿])
 end
-rule S
-(blank* (comment blank*)*)
-end
 rule comment
 (("/" non_slash* "/") / ("#" non_lf* "\n"))
 end
-rule OC
-("," S)?
+rule S
+(blank* (comment blank*)*)
+end
+rule MS
+((blank / comment) S)
+end
+rule MSC
+(("," S) / (MS ("," S)?))
+end
+rule SOC
+(S ("," S)?)
 end
 rule streamstring
-("(_" S string S (OC string S)* OC ")") {
+("(_" MS string (MSC string)* SOC ")") {
   def ast
-    strings = [elements[2].ast] + elements[4].elements.map {|x| x.string.ast }
+    strings = [elements[2].ast] + elements[3].elements.map {|x| x.string.ast }
     unless Set[*strings.map(&:encoding)].size == 1
       warn "*** mixed streamstring #{strings.cbor_diagnostic}"
     end
@@ -252,7 +269,10 @@ rule streamstring
 }
 end
 rule spec
-("_" wordchar*)?
+("_" wordchar*)? {def ast; elements[0].elements[1].text_value end}
+end
+rule specms
+("_" wordchar* MS)? { def ast; elements[0].elements[1].text_value end}
 end
 rule double_quoted
 (unescaped {def ast; text_value.gsub("\r", "") end} / SQUOTE {def ast; text_value end} / ("\\" DQUOTE) {def ast; elements[1].text_value end} / ("\\" escapable) {def ast; escapable.ast end})

@@ -1,7 +1,7 @@
-seq             = S [item S *(OC item S) OC]{
+seq             = S [item *(MSC item) SOC]{
   def ast
     r = if e = elements[1].elements
-          [e[0].ast] + e[2].elements.map {|x| x.item.ast }
+          [e[0].ast] + e[1].elements.map {|x| x.item.ast }
         else
           []
         end
@@ -145,42 +145,53 @@ embedded        = "<<" seq ">>"{
   end
 }
 
-array           = "[" spec S [item S *(OC item S) OC] "]"{
+array           = "[" (specms S item *(MSC item) SOC / spec S) "]"{
   def ast
-    r = if e = elements[3].elements
-          [e[0].ast] + e[2].elements.map {|x| x.item.ast }
-        else
-          []
-        end
-    if ei = spec.text_value[1..-1]
-       #       warn "** ei #{ei.inspect}"
-       if ei == ""
-         r.cbor_stream!
-       else
-         warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
-       end
+    e = elements[1] # alternative
+    ei = nil
+    if e.respond_to?(:specms)
+      if e.specms && e.specms.elements
+        ei = e.specms.elements[1].text_value
+      end
+      r = [e.item.ast] + e.elements[3].elements.map {|x| x.item.ast}
+    else
+      if e.spec && e.spec.elements
+        ei = e.spec.elements[1].text_value
+      end
+      r = []
+    end
+    if ei == ""
+      r.cbor_stream!
+    elsif ei
+      warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
     end
     r
   end
 }
-map             = "{" spec S [kp S *(OC kp S) OC] "}"{
+map             = "{" (specms S keyp *(MSC keyp) SOC / spec S) "}"{
   def ast
-    r = if e = elements[3].elements
-          Hash[ [e[0].ast] + e[2].elements.map {|x| x.kp.ast } ]
-        else
-          {}
-        end
-    if ei = spec.text_value[1..-1]
-       if ei == ""
-         r.cbor_stream!
-       else
-         warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after \x7b"
-       end
+    e = elements[1] # alternative
+    ei = nil
+    if e.respond_to?(:specms)
+      if e.specms && e.specms.elements
+        ei = e.specms.elements[1].text_value
+      end
+      r = Hash[ [e.keyp.ast] + e.elements[3].elements.map {|x| x.keyp.ast } ]
+    else
+      if e.spec && e.spec.elements
+        ei = e.spec.elements[1].text_value
+      end
+      r = {}
+    end
+    if ei == ""
+      r.cbor_stream!
+    elsif ei
+      warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
     end
     r
   end
 }
-kp              = item S ":" S item{
+keyp            = item S ":" S item{
   def ast
     [elements[0].ast, elements[4].ast]
   end
@@ -190,25 +201,30 @@ kp              = item S ":" S item{
 blank           = %x09 / %x0A / %x0D / %x20
 non-slash       = blank / %x21-2e / %x30-D7FF / %xE000-10FFFF
 non-lf          = %x09 / %x0D / %x20-D7FF / %xE000-10FFFF
-S               = *blank *(comment *blank)
 comment         = "/" *non-slash "/"
                 / "#" *non-lf %x0A
-
-; optional comma (ignored)
-OC              = ["," S]
+; optional space
+S               = *blank *(comment *blank)
+; mandatory space
+MS              = (blank/comment) S
+; mandatory comma and/or space
+MSC             = ("," S) / (MS ["," S])
+; optional comma and/or space
+SOC             = S ["," S]
 
 ; check semantically that strings are either all text or all bytes
 ; note that there must be at least one string to distinguish
-streamstring    = "(_" S string S *(OC string S) OC ")"{
+streamstring    = "(_" MS string *(MSC string) SOC ")"{
   def ast
-    strings = [elements[2].ast] + elements[4].elements.map {|x| x.string.ast }
+    strings = [elements[2].ast] + elements[3].elements.map {|x| x.string.ast }
     unless Set[*strings.map(&:encoding)].size == 1
       warn "*** mixed streamstring #{strings.cbor_diagnostic}"
     end
     strings.join.cbor_stream!(strings.map(&:size))
   end
 }
-spec            = ["_" *wordchar]
+spec            = ["_" *wordchar]{def ast; elements[0].elements[1].text_value end}
+specms          = ["_" *wordchar MS]{ def ast; elements[0].elements[1].text_value end}
 
 double-quoted   = unescaped{def ast; text_value.gsub("\r", "") end}
                 / SQUOTE{def ast; text_value end}
