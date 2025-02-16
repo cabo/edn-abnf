@@ -48,7 +48,7 @@ begin
       $options.edn = v
     end
     opts.on("-tFMT", "--to=FMT",
-            [:basic, :neat, :json, :yaml, :edn, :diag, :pretty],
+            [:basic, :neat, :json, :yaml, :edn, :diag, :pretty, :hex],
             "Target format (default: diag)") do |v|
       $options.target = v
     end
@@ -140,14 +140,18 @@ when :yaml
   puts result.to_yaml
 when :edn, :diag, nil
   puts result.cbor_diagnostic
-when :pretty
+when :pretty, :hex
   # XXX can't do Box yet
   enc = if CBOR::Sequence === result
           result.to_cborseq
         else
           result.to_cbor
         end
-  puts CBOR::pretty_seq(enc)
+  if $options.target == :pretty
+    puts CBOR::pretty_seq(enc)
+  else
+    puts enc.bytes.map{|x| "%02x" % x}.join
+  end
 else
   warn ["Unknown target format: ", $options.target].inspect
 end
