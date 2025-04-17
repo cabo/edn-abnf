@@ -147,6 +147,23 @@ rule app_string
   end
 }
 end
+rule app_sequence
+(app_prefix "<<" seq ">>") {
+  def ast
+    args = seq.ast
+    app = app_prefix.text_value
+    # Find a better place to put a default initialization
+    EDNGRAMMAR.const_set(:APPS, Hash.new { |h, k|
+                           h[k] = begin ::CBOR_DIAG.const_get("App_#{k.downcase}")
+
+                                  rescue NameError
+                                    raise ArgumentError, "cbor-diagnostic: Unknown application-oriented extension '#{k}'", caller
+                                  end
+                         }) unless ::EDNGRAMMAR.const_defined?(:APPS)
+    ::EDNGRAMMAR::APPS[app].decode(app, args)
+  end
+}
+end
 rule sqstr
 (SQUOTE single_quoted* SQUOTE) {
   def ast
@@ -155,7 +172,7 @@ rule sqstr
 }
 end
 rule bstr
-(app_string / sqstr / embedded)
+(app_string / sqstr / app_sequence / embedded)
 end
 rule tstr
 (DQUOTE double_quoted* DQUOTE) {

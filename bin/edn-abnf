@@ -52,6 +52,15 @@ begin
             "Target format (default: diag)") do |v|
       $options.target = v
     end
+    opts.on("-aAPP", "--app=APP", "Load application extension") do |v|
+      v.split(",") do |nm|
+        if nm =~ /\A[a-z][a-z0-9]*\z/
+          require "cbor-diagnostic-app/#{nm}"
+        else
+          raise ArgumentError.new("edn-abnf: app-extension name #{nm} not valid")
+        end
+      end
+    end
   end
   op.parse!
 rescue Exception => e

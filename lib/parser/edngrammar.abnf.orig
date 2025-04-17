@@ -32,8 +32,9 @@ tagged          = uint spec "(" S item S ")"
 app-prefix      = lcalpha *lcalnum ; including h and b64
                 / ucalpha *ucalnum ; tagged variant, if defined
 app-string      = app-prefix sqstr
+app-sequence    = app-prefix "<<" seq ">>"
 sqstr           = SQUOTE *single-quoted SQUOTE
-bstr            = app-string / sqstr / embedded
+bstr            = app-string / sqstr / app-sequence / embedded
                   ; app-string could be any type
 tstr            = DQUOTE *double-quoted DQUOTE
 embedded        = "<<" seq ">>"
