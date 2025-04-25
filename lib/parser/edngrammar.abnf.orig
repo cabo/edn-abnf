@@ -66,32 +66,54 @@ specms          = ["_" *wordchar MS]
 
 double-quoted   = unescaped
                 / SQUOTE
-                / "\" DQUOTE
-                / "\" escapable
+                / "\" escapable-d
 
 single-quoted   = unescaped
                 / DQUOTE
-                / "\" SQUOTE
-                / "\" escapable
+                / "\" escapable-s
 
-escapable       = %s"b" ; BS backspace U+0008
+escapable1      = %s"b" ; BS backspace U+0008
                 / %s"f" ; FF form feed U+000C
                 / %s"n" ; LF line feed U+000A
                 / %s"r" ; CR carriage return U+000D
                 / %s"t" ; HT horizontal tab U+0009
-                / "/"   ; / slash (solidus) U+002F (JSON!)
                 / "\"   ; \ backslash (reverse solidus) U+005C
+
+escapable-d     = escapable1
+                / DQUOTE
+                / "/"   ; / slash (solidus) U+002F (JSON!)
                 / (%s"u" hexchar) ;  uXXXX      U+XXXX
+
+escapable-s     = escapable1
+                / SQUOTE
+                / (%s"u" hexchar-s) ;  uXXXX      U+XXXX
 
 hexchar         = "{" (1*"0" [ hexscalar ] / hexscalar) "}"
                 / non-surrogate
-                / (high-surrogate "\" %s"u" low-surrogate)
+                / two-surrogate
 non-surrogate   = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
                 / ("D" ODIGIT 2HEXDIG )
+two-surrogate   = high-surrogate "\" %s"u" low-surrogate
 high-surrogate  = "D" ("8"/"9"/"A"/"B") 2HEXDIG
 low-surrogate   = "D" ("C"/"D"/"E"/"F") 2HEXDIG
 hexscalar       = "10" 4HEXDIG / HEXDIG1 4HEXDIG
                 / non-surrogate / 1*3HEXDIG
+
+; single-quote hexchar-s: don't allow 0020..007e
+hexchar-s       = "{" (1*"0" [ hexscalar-s ] / hexscalar-s) "}"
+                / non-surrogate-s
+                / two-surrogate
+non-surrogate-s = "007F"                 ; rubout
+                / "00" ("0"/"1"/"8"/"9"/HEXDIGA) HEXDIG
+                / "0" HEXDIG1 2HEXDIG
+                / non-surrogate-1
+non-surrogate-1 = ((DIGIT1 / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
+                / ("D" ODIGIT 2HEXDIG )
+hexscalar-s     = "10" 4HEXDIG / HEXDIG1 4HEXDIG
+                / non-surrogate-1 / HEXDIG1 2HEXDIG
+                / ("1"/"8"/"9"/HEXDIGA) HEXDIG
+                / "7F"
+                / HEXDIG1
 
 ; Note that no other C0 characters are allowed, including %x09 HT
 unescaped       = %x0A ; new line
@@ -111,9 +133,10 @@ DIGIT           = %x30-39 ; 0-9
 DIGIT1          = %x31-39 ; 1-9
 ODIGIT          = %x30-37 ; 0-7
 BDIGIT          = %x30-31 ; 0-1
-HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
-HEXDIG1         = DIGIT1 / "A" / "B" / "C" / "D" / "E" / "F"
+HEXDIGA         = "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
+HEXDIG          = DIGIT / HEXDIGA
+HEXDIG1         = DIGIT1 / HEXDIGA
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
 ucalpha         = %x41-5A ; A-Z
