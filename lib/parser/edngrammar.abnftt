@@ -243,36 +243,58 @@ specms          = ["_" *wordchar MS]{ def ast; elements[0].elements[1].text_valu
 
 double-quoted   = unescaped{def ast; text_value.gsub("\r", "") end}
                 / SQUOTE{def ast; text_value end}
-                / "\" DQUOTE{def ast; elements[1].text_value end}
-                / "\" escapable{def ast; escapable.ast end}
+                / "\" escapable-d{def ast; escapable_d.ast end}
 
 single-quoted   = unescaped{def ast; text_value.gsub("\r", "") end}
                 / DQUOTE{def ast; text_value end}
-                / "\" SQUOTE{def ast; elements[1].text_value end}
-                / "\" escapable{def ast; escapable.ast end}
+                / "\" escapable-s{def ast; escapable_s.ast end}
 
-escapable       = %s"b"{def ast; "\b" end} ; BS backspace U+0008
+escapable1      = %s"b"{def ast; "\b" end} ; BS backspace U+0008
                 / %s"f"{def ast; "\f" end} ; FF form feed U+000C
                 / %s"n"{def ast; "\n" end} ; LF line feed U+000A
                 / %s"r"{def ast; "\r" end} ; CR carriage return U+000D
                 / %s"t"{def ast; "\t" end} ; HT horizontal tab U+0009
-                / "/"{def ast; text_value end}   ; / slash (solidus) U+002F (JSON!)
                 / "\"{def ast; text_value end}   ; \ backslash (reverse solidus) U+005C
+
+escapable-d     = escapable1
+                / DQUOTE{def ast; text_value end}
+                / "/"{def ast; text_value end}   ; / slash (solidus) U+002F (JSON!)
                 / (%s"u" hexchar){def ast; hexchar.ast end} ;  uXXXX      U+XXXX
+
+escapable-s     = escapable1
+                / SQUOTE{def ast; text_value end}
+                / (%s"u" hexchar-s){def ast; hexchar_s.ast end} ;  uXXXX      U+XXXX
 
 hexchar         = "{" (1*"0" [ hexscalar ] / hexscalar) "}"{def ast; elements[1].hex_value.chr(Encoding::UTF_8) end}
                 / non-surrogate{def ast; hex_value.chr(Encoding::UTF_8) end}
-                / (high-surrogate "\" %s"u" low-surrogate){
+                / two-surrogate
+non-surrogate   = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
+                / ("D" ODIGIT 2HEXDIG )
+two-surrogate   = high-surrogate "\" %s"u" low-surrogate{
   def ast
     ((high_surrogate.ast << 10) + low_surrogate.ast + 0x10000).chr(Encoding::UTF_8)
   end
 }
-non-surrogate   = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
-                / ("D" ODIGIT 2HEXDIG )
 high-surrogate  = "D" ("8"/"9"/"A"/"B") 2HEXDIG{def ast; hex_value - 0xD800 end}
 low-surrogate   = "D" ("C"/"D"/"E"/"F") 2HEXDIG{def ast; hex_value - 0xDC00 end}
 hexscalar       = "10" 4HEXDIG / HEXDIG1 4HEXDIG
                 / non-surrogate / 1*3HEXDIG
+
+; single-quote hexchar-s: don't allow 0020..007e
+hexchar-s       = "{" (1*"0" [ hexscalar-s ] / hexscalar-s) "}"{def ast; elements[1].hex_value.chr(Encoding::UTF_8) end}
+                / non-surrogate-s{def ast; hex_value.chr(Encoding::UTF_8) end}
+                / two-surrogate
+non-surrogate-s = "007F"                 ; rubout
+                / "00" ("0"/"1"/"8"/"9"/HEXDIGA) HEXDIG
+                / "0" HEXDIG1 2HEXDIG
+                / non-surrogate-1
+non-surrogate-1 = ((DIGIT1 / "A"/"B"/"C" / "E"/"F") 3HEXDIG)
+                / ("D" ODIGIT 2HEXDIG )
+hexscalar-s     = "10" 4HEXDIG / HEXDIG1 4HEXDIG
+                / non-surrogate-1 / HEXDIG1 2HEXDIG
+                / ("1"/"8"/"9"/HEXDIGA) HEXDIG
+                / "7F"
+                / HEXDIG1
 
 ; Note that no other C0 characters are allowed, including %x09 HT
 unescaped       = %x0A ; new line
@@ -292,9 +314,10 @@ DIGIT           = %x30-39 ; 0-9
 DIGIT1          = %x31-39 ; 1-9
 ODIGIT          = %x30-37 ; 0-7
 BDIGIT          = %x30-31 ; 0-1
-HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
-HEXDIG1         = DIGIT1 / "A" / "B" / "C" / "D" / "E" / "F"
+HEXDIGA         = "A" / "B" / "C" / "D" / "E" / "F"
 ; Note: double-quoted strings as in "A" are case-insensitive in ABNF
+HEXDIG          = DIGIT / HEXDIGA
+HEXDIG1         = DIGIT1 / HEXDIGA
 lcalpha         = %x61-7A ; a-z
 lcalnum         = lcalpha / DIGIT
 ucalpha         = %x41-5A ; A-Z

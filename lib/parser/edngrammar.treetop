@@ -292,23 +292,32 @@ rule specms
 ("_" wordchar* MS)? { def ast; elements[0].elements[1].text_value end}
 end
 rule double_quoted
-(unescaped {def ast; text_value.gsub("\r", "") end} / SQUOTE {def ast; text_value end} / ("\\" DQUOTE) {def ast; elements[1].text_value end} / ("\\" escapable) {def ast; escapable.ast end})
+(unescaped {def ast; text_value.gsub("\r", "") end} / SQUOTE {def ast; text_value end} / ("\\" escapable_d) {def ast; escapable_d.ast end})
 end
 rule single_quoted
-(unescaped {def ast; text_value.gsub("\r", "") end} / DQUOTE {def ast; text_value end} / ("\\" SQUOTE) {def ast; elements[1].text_value end} / ("\\" escapable) {def ast; escapable.ast end})
+(unescaped {def ast; text_value.gsub("\r", "") end} / DQUOTE {def ast; text_value end} / ("\\" escapable_s) {def ast; escapable_s.ast end})
 end
-rule escapable
-("b" {def ast; "\b" end} / "f" {def ast; "\f" end} / "n" {def ast; "\n" end} / "r" {def ast; "\r" end} / "t" {def ast; "\t" end} / "/" {def ast; text_value end} / "\\" {def ast; text_value end} / ("u" hexchar) {def ast; hexchar.ast end})
+rule escapable1
+("b" {def ast; "\b" end} / "f" {def ast; "\f" end} / "n" {def ast; "\n" end} / "r" {def ast; "\r" end} / "t" {def ast; "\t" end} / "\\" {def ast; text_value end})
+end
+rule escapable_d
+(escapable1 / DQUOTE {def ast; text_value end} / "/" {def ast; text_value end} / ("u" hexchar) {def ast; hexchar.ast end})
+end
+rule escapable_s
+(escapable1 / SQUOTE {def ast; text_value end} / ("u" hexchar_s) {def ast; hexchar_s.ast end})
 end
 rule hexchar
-(("{" (("0"+ hexscalar?) / hexscalar) "}") {def ast; elements[1].hex_value.chr(Encoding::UTF_8) end} / non_surrogate {def ast; hex_value.chr(Encoding::UTF_8) end} / (high_surrogate "\\" "u" low_surrogate) {
-  def ast
-    ((high_surrogate.ast << 10) + low_surrogate.ast + 0x10000).chr(Encoding::UTF_8)
-  end
-})
+(("{" (("0"+ hexscalar?) / hexscalar) "}") {def ast; elements[1].hex_value.chr(Encoding::UTF_8) end} / non_surrogate {def ast; hex_value.chr(Encoding::UTF_8) end} / two_surrogate)
 end
 rule non_surrogate
 (((DIGIT / "A"i / "B"i / "C"i / "E"i / "F"i) HEXDIG 3..3) / ("D"i ODIGIT HEXDIG 2..2))
+end
+rule two_surrogate
+(high_surrogate "\\" "u" low_surrogate) {
+  def ast
+    ((high_surrogate.ast << 10) + low_surrogate.ast + 0x10000).chr(Encoding::UTF_8)
+  end
+}
 end
 rule high_surrogate
 ("D"i ("8" / "9" / "A"i / "B"i) HEXDIG 2..2) {def ast; hex_value - 0xD800 end}
@@ -318,6 +327,18 @@ rule low_surrogate
 end
 rule hexscalar
 (("10" HEXDIG 4..4) / (HEXDIG1 HEXDIG 4..4) / non_surrogate / HEXDIG 1..3)
+end
+rule hexchar_s
+(("{" (("0"+ hexscalar_s?) / hexscalar_s) "}") {def ast; elements[1].hex_value.chr(Encoding::UTF_8) end} / non_surrogate_s {def ast; hex_value.chr(Encoding::UTF_8) end} / two_surrogate)
+end
+rule non_surrogate_s
+("007F"i / ("00" ("0" / "1" / "8" / "9" / HEXDIGA) HEXDIG) / ("0" HEXDIG1 HEXDIG 2..2) / non_surrogate_1)
+end
+rule non_surrogate_1
+(((DIGIT1 / "A"i / "B"i / "C"i / "E"i / "F"i) HEXDIG 3..3) / ("D"i ODIGIT HEXDIG 2..2))
+end
+rule hexscalar_s
+(("10" HEXDIG 4..4) / (HEXDIG1 HEXDIG 4..4) / non_surrogate_1 / (HEXDIG1 HEXDIG 2..2) / (("1" / "8" / "9" / HEXDIGA) HEXDIG) / "7F"i / HEXDIG1)
 end
 rule unescaped
 ("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-퟿] / [-􏿿])
@@ -340,11 +361,14 @@ end
 rule BDIGIT
 [0-1]
 end
+rule HEXDIGA
+("A"i / "B"i / "C"i / "D"i / "E"i / "F"i)
+end
 rule HEXDIG
-(DIGIT / "A"i / "B"i / "C"i / "D"i / "E"i / "F"i)
+(DIGIT / HEXDIGA)
 end
 rule HEXDIG1
-(DIGIT1 / "A"i / "B"i / "C"i / "D"i / "E"i / "F"i)
+(DIGIT1 / HEXDIGA)
 end
 rule lcalpha
 [a-z]
