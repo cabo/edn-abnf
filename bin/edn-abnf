@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# coding: utf-8-hfs
+# coding: utf-8
 require 'pp'
 require 'yaml'
 require 'treetop'
