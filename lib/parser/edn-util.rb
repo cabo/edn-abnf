@@ -5,6 +5,15 @@ end
 require 'treetop'
 require_relative './edngrammar'
 
+module EDNGRAMMAR
+  const_set(:APPS, Hash.new { |h, k|
+              h[k] = begin ::CBOR_DIAG.const_get("App_#{k.downcase}")
+                     rescue NameError
+                       raise ArgumentError, "cbor-diagnostic: Unknown application-oriented extension '#{k}'", caller
+                     end
+            }) unless const_defined?(:APPS)
+end
+
 class Treetop::Runtime::SyntaxNode
   def ast
     fail "undefined_ast #{inspect}"
