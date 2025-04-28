@@ -32,6 +32,8 @@ Encoding.default_external = Encoding::UTF_8
 require 'optparse'
 require 'ostruct'
 
+$error = 0
+
 $options = OpenStruct.new
 begin
   op = OptionParser.new do |opts|
@@ -100,6 +102,7 @@ if $options.lines
         else
           puts "** x / #{ednin.inspect} / #{out} ≠ #{result_diag.inspect} / #{result_hex}"
         end
+        $error += 1
       end
       next
     end
@@ -110,17 +113,20 @@ if $options.lines
       diag = result.cbor_diagnostic
       if out == diag && !ok
           puts "** ≠ / #{diag.inspect} / #{out.inspect}"
+          $error += 1
       end
       if out != diag && ok
         outdiag = tree_from_edn_possibly_hex(out || "").cbor_diagnostic
         if outdiag != diag
           puts "** ≡ / #{ednin.inspect} #{diag.inspect} / #{out.inspect} #{outdiag.inspect}"
+          $error += 1
         end
         puts "reparsed / #{diag.inspect} / #{out.inspect}" if $options.verbose
       end
     rescue ArgumentError => e
       if ok
         puts "** #{e} / #{result.inspect} / #{out.inspect}"
+        $error += 1
       else
         if $options.verbose
           puts "expected failure #{e}"
@@ -128,7 +134,14 @@ if $options.lines
       end
     end
   end
-  exit
+  if $error > 0
+    puts
+    puts "*** #$error errors!"
+    puts
+    exit 1
+  else
+    exit
+  end
 end
 
 begin
