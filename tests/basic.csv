@@ -141,6 +141,12 @@ x,+0x4C.abp16,fa4a995600
 =,"h'AAAA#foo'",h'AAAA'
 -,"h'AAA#foo'",
 =,"h'AA#foo'",h'AA'
+=,"h'AA#foo🤓foo'",h'AA'
+=,"h'AA#foo\ud83e\udd13foo'",h'AA'
+=,"h'AA#foo\u{1F913}foo'",h'AA'
+=,"h'AA#foo\ud83e\udd13foo'","h'AA#foo🤓foo'"
+-,"h'AA#foo\ud83e\u1234foo'","h'AA#foo🤓foo'"
+-,"h'AA#foo\udd13\ud83efoo'","h'AA#foo🤓foo'"
 =,b64'',h''
 =,b64'AAAA',h'000000'
 =,b64'AAA',h'0000'
