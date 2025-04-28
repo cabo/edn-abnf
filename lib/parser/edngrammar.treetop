@@ -157,7 +157,7 @@ rule sqstr
 }
 end
 rule bstr
-(app_string / sqstr / app_sequence / embedded)
+(sq_app_string_h / app_string / sqstr / app_sequence / embedded)
 end
 rule tstr
 (DQUOTE double_quoted* DQUOTE) {
