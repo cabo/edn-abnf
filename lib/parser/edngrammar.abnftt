@@ -309,3 +309,74 @@ ucalpha         = %x41-5A ; A-Z
 ucalnum         = ucalpha / DIGIT
 wordchar        = "_" / lcalnum / ucalpha ; [_a-z0-9A-Z]
 NONASCII        = %x80-D7FF / %xE000-10FFFF
+
+;; bricklets for building integrating parsers
+
+i-HT =        %s"\t" / %s"\u" ("0009" / "{" *("0") "9}")
+i-LF = %x0a / %s"\n" / %s"\u" ("000A" / "{" *("0") "A}")
+i-CR = %x0d / %s"\r" / %s"\u" ("000D" / "{" *("0") "D}")
+
+i-NONASCII = NONASCII / %s"\u" ESCGE7F
+
+; hex escaping for U+007F or greater
+ESCGE7F = "D" ("8"/"9"/"A"/"B") 2HEXDIG
+          %s"\u" "D" ("C"/"D"/"E"/"F") 2HEXDIG
+        / FOURHEX1 / "0" HEXDIG1 2HEXDIG / "00" TWOHEX1
+        / "{" *("0")
+          ("10" 4HEXDIG / HEXDIG1 4HEXDIG
+           / FOURHEX1 / HEXDIG1 2HEXDIG / TWOHEX1)
+          "}"
+
+; xxxx - 0xxx - Dhigh\uDloow
+FOURHEX1 = (DIGIT1 / "A"/"B"/"C" / "E"/"F") 3HEXDIG
+         / "D" ODIGIT 2HEXDIG
+; 00xx - ASCII + 007F
+TWOHEX1  = ("8"/"9" / HEXDIGA) HEXDIG / "7F"
+
+;; integrated parser for h''
+
+sq-app-string-h = %s"h'" app-string-h "'"{def ast; app_string_h.ast end}
+app-string-h = h-S *(HEXDIG h-S HEXDIG h-S{
+  def ast
+    Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
+  end
+} / ellipsis h-S{def ast; ellipsis.ast end})
+    ["#" *(h-non-lf)]{
+  def unpack_thread(s)
+    case s[0]
+    when CBOR::Tagged
+      s[0]
+    when String
+      s.join
+    else
+      raise "@@@ unpack_thread #{s.inspect}"
+    end
+  end
+  def ast
+    e1 = elements[1].elements.map {|e| e.ast}
+    out = []
+    curr = []
+    e1.each { |el|
+      if curr.size == 0 || curr[0].class == el.class
+        curr << el
+      else
+        out << curr
+        curr = [el]
+      end
+    }
+    if out.size == 0 && (curr.size == 0 || String === curr[0])
+      curr.join.b # unpack_thread(curr)
+    else
+      CBOR::Tagged.new(888, (out << curr).map {|x| unpack_thread(x)})
+    end
+  end
+}
+
+h-blank = i-HT / i-LF / i-CR / " "
+h-non-slash = h-blank / %x21-26 / "\'" / %x28-2e
+            / %x30-5b / "\\" / %x5d-7f / i-NONASCII
+h-non-lf = i-HT / i-CR / %x20-26 / "\'" / %x28-5b
+         / "\\" / %x5d-7f / i-NONASCII
+h-S = *(h-blank) *(h-comment *(h-blank))
+h-comment = "/" *(h-non-slash) "/"
+          / "#" *(h-non-lf) i-LF

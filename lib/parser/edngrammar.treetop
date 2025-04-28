@@ -373,5 +373,80 @@ end
 rule NONASCII
 ([-퟿] / [-􏿿])
 end
+rule i_HT
+("\\t" / ("\\u" ("0009" / ("{" "0"* "9}"))))
+end
+rule i_LF
+("\n" / "\\n" / ("\\u" ("000A"i / ("{" "0"* "A}"i))))
+end
+rule i_CR
+("\r" / "\\r" / ("\\u" ("000D"i / ("{" "0"* "D}"i))))
+end
+rule i_NONASCII
+(NONASCII / ("\\u" ESCGE7F))
+end
+rule ESCGE7F
+(("D"i ("8" / "9" / "A"i / "B"i) HEXDIG 2..2 "\\u" "D"i ("C"i / "D"i / "E"i / "F"i) HEXDIG 2..2) / FOURHEX1 / ("0" HEXDIG1 HEXDIG 2..2) / ("00" TWOHEX1) / ("{" "0"* (("10" HEXDIG 4..4) / (HEXDIG1 HEXDIG 4..4) / FOURHEX1 / (HEXDIG1 HEXDIG 2..2) / TWOHEX1) "}"))
+end
+rule FOURHEX1
+(((DIGIT1 / "A"i / "B"i / "C"i / "E"i / "F"i) HEXDIG 3..3) / ("D"i ODIGIT HEXDIG 2..2))
+end
+rule TWOHEX1
+((("8" / "9" / HEXDIGA) HEXDIG) / "7F"i)
+end
+rule sq_app_string_h
+("h'" app_string_h "'") {def ast; app_string_h.ast end}
+end
+rule app_string_h
+(h_S ((HEXDIG h_S HEXDIG h_S) {
+  def ast
+    Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
+  end
+} / (ellipsis h_S) {def ast; ellipsis.ast end})* ("#" h_non_lf*)?) {
+  def unpack_thread(s)
+    case s[0]
+    when CBOR::Tagged
+      s[0]
+    when String
+      s.join
+    else
+      raise "@@@ unpack_thread #{s.inspect}"
+    end
+  end
+  def ast
+    e1 = elements[1].elements.map {|e| e.ast}
+    out = []
+    curr = []
+    e1.each { |el|
+      if curr.size == 0 || curr[0].class == el.class
+        curr << el
+      else
+        out << curr
+        curr = [el]
+      end
+    }
+    if out.size == 0 && (curr.size == 0 || String === curr[0])
+      curr.join.b # unpack_thread(curr)
+    else
+      CBOR::Tagged.new(888, (out << curr).map {|x| unpack_thread(x)})
+    end
+  end
+}
+end
+rule h_blank
+(i_HT / i_LF / i_CR / " ")
+end
+rule h_non_slash
+(h_blank / [!-&] / "\\'" / [\(-\.] / [0-\[] / "\\\\" / [\]-] / i_NONASCII)
+end
+rule h_non_lf
+(i_HT / i_CR / [\ -&] / "\\'" / [\(-\[] / "\\\\" / [\]-] / i_NONASCII)
+end
+rule h_S
+(h_blank* (h_comment h_blank*)*)
+end
+rule h_comment
+(("/" h_non_slash* "/") / ("#" h_non_lf* i_LF))
+end
 
 end
