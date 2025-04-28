@@ -128,7 +128,7 @@ rule tagged
 }
 end
 rule app_prefix
-((lcalpha lcalnum*) / (ucalpha ucalnum*))
+((lcalpha lcldh*) / (ucalpha ucldh*))
 end
 rule app_string
 (app_prefix sqstr) {
@@ -358,17 +358,17 @@ end
 rule lcalpha
 [a-z]
 end
-rule lcalnum
-(lcalpha / DIGIT)
+rule lcldh
+(lcalpha / DIGIT / "-")
 end
 rule ucalpha
 [A-Z]
 end
-rule ucalnum
-(ucalpha / DIGIT)
+rule ucldh
+(ucalpha / DIGIT / "-")
 end
 rule wordchar
-("_" / lcalnum / ucalpha)
+("_" / lcalpha / DIGIT / ucalpha)
 end
 rule NONASCII
 ([-퟿] / [-􏿿])
