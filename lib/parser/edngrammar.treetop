@@ -239,10 +239,10 @@ rule blank
 ("\t" / "\n" / "\r" / " ")
 end
 rule non_slash
-(blank / [!-\.] / [0-퟿] / [-􏿿])
+(blank / [!-\.] / [0-] / NONASCII)
 end
 rule non_lf
-("\t" / "\r" / [\ -퟿] / [-􏿿])
+("\t" / "\r" / [\ -] / NONASCII)
 end
 rule comment
 (("/" non_slash* "/") / ("#" non_lf* "\n"))
@@ -326,7 +326,7 @@ rule hexscalar_s
 (("10" HEXDIG 4..4) / (HEXDIG1 HEXDIG 4..4) / non_surrogate_1 / (HEXDIG1 HEXDIG 2..2) / (("1" / "8" / "9" / HEXDIGA) HEXDIG) / "7F"i / HEXDIG1)
 end
 rule unescaped
-("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-퟿] / [-􏿿])
+("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-] / NONASCII)
 end
 rule DQUOTE
 "\""
@@ -369,6 +369,9 @@ rule ucalnum
 end
 rule wordchar
 ("_" / lcalnum / ucalpha)
+end
+rule NONASCII
+([-퟿] / [-􏿿])
 end
 
 end

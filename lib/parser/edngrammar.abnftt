@@ -199,8 +199,8 @@ keyp            = item S ":" S item{
 
 ; We allow %x09 HT in prose, but not in strings
 blank           = %x09 / %x0A / %x0D / %x20
-non-slash       = blank / %x21-2e / %x30-D7FF / %xE000-10FFFF
-non-lf          = %x09 / %x0D / %x20-D7FF / %xE000-10FFFF
+non-slash       = blank / %x21-2e / %x30-7F / NONASCII
+non-lf          = %x09 / %x0D / %x20-7F / NONASCII
 comment         = "/" *non-slash "/"
                 / "#" *non-lf %x0A
 ; optional space
@@ -290,8 +290,8 @@ unescaped       = %x0A ; new line
                      ; omit 0x27 '
                 / %x28-5B
                      ; omit 0x5C \
-                / %x5D-D7FF ; skip surrogate code points
-                / %xE000-10FFFF
+                / %x5D-7F
+                / NONASCII
 
 DQUOTE          = %x22    ; " double quote
 SQUOTE          = "'"     ; ' single quote
@@ -308,3 +308,4 @@ lcalnum         = lcalpha / DIGIT
 ucalpha         = %x41-5A ; A-Z
 ucalnum         = ucalpha / DIGIT
 wordchar        = "_" / lcalnum / ucalpha ; [_a-z0-9A-Z]
+NONASCII        = %x80-D7FF / %xE000-10FFFF
