@@ -371,7 +371,7 @@ rule ALPHA
 (lcalpha / ucalpha)
 end
 rule wordchar
-("_" / lcalpha / DIGIT / ucalpha)
+("_" / ALPHA / DIGIT)
 end
 rule NONASCII
 ([-퟿] / [-􏿿])

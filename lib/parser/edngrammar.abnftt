@@ -309,7 +309,7 @@ lcldh           = lcalpha / DIGIT / "-"
 ucalpha         = %x41-5A ; A-Z
 ucldh           = ucalpha / DIGIT / "-"
 ALPHA           = lcalpha / ucalpha
-wordchar        = "_" / lcalpha / DIGIT / ucalpha ; [_a-z0-9A-Z]
+wordchar        = "_" / ALPHA / DIGIT ; [_a-z0-9A-Z]
 NONASCII        = %x80-D7FF / %xE000-10FFFF
 
 ;; bricklets for building integrating parsers
