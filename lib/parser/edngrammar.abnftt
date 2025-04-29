@@ -127,7 +127,7 @@ sqstr           = SQUOTE *single-quoted SQUOTE{
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
   end
 }
-bstr            = sq-app-string-h /
+bstr            = sq-app-string-h / sq-app-string-b64 /
                   app-string / sqstr / app-sequence / embedded
                   ; app-string/-sequence could be any type
 tstr            = DQUOTE *double-quoted DQUOTE{
@@ -308,6 +308,7 @@ lcalpha         = %x61-7A ; a-z
 lcldh           = lcalpha / DIGIT / "-"
 ucalpha         = %x41-5A ; A-Z
 ucldh           = ucalpha / DIGIT / "-"
+ALPHA           = lcalpha / ucalpha
 wordchar        = "_" / lcalpha / DIGIT / ucalpha ; [_a-z0-9A-Z]
 NONASCII        = %x80-D7FF / %xE000-10FFFF
 
@@ -316,6 +317,10 @@ NONASCII        = %x80-D7FF / %xE000-10FFFF
 i-HT =        %s"\t" / %s"\u" ("0009" / "{" *("0") "9}")
 i-LF = %x0a / %s"\n" / %s"\u" ("000A" / "{" *("0") "A}")
 i-CR = %x0d / %s"\r" / %s"\u" ("000D" / "{" *("0") "D}")
+
+i-blank = i-LF / i-CR / " "
+i-non-lf = i-HT / i-CR / %x20-26 / "\'" / %x28-5b
+         / "\\" / %x5d-7f / i-NONASCII
 
 i-NONASCII = NONASCII / %s"\u" ESCGE7F
 
@@ -342,7 +347,7 @@ app-string-h = h-S *(HEXDIG h-S HEXDIG h-S{
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
 } / ellipsis h-S{def ast; ellipsis.ast end})
-    ["#" *(h-non-lf)]{
+    ["#" *(i-non-lf)]{
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -373,11 +378,32 @@ app-string-h = h-S *(HEXDIG h-S HEXDIG h-S{
   end
 }
 
-h-blank = i-HT / i-LF / i-CR / " "
-h-non-slash = h-blank / %x21-26 / "\'" / %x28-2e
+h-S = *(i-blank) *(h-comment *(i-blank))
+h-non-slash = i-blank / %x21-26 / "\'" / %x28-2e
             / %x30-5b / "\\" / %x5d-7f / i-NONASCII
-h-non-lf = i-HT / i-CR / %x20-26 / "\'" / %x28-5b
-         / "\\" / %x5d-7f / i-NONASCII
-h-S = *(h-blank) *(h-comment *(h-blank))
 h-comment = "/" *(h-non-slash) "/"
-          / "#" *(h-non-lf) i-LF
+          / "#" *(i-non-lf) i-LF
+
+;; integrated parser for b64''
+
+sq-app-string-b64 = %s"b64'" app-string-b64 "'"{def ast; app_string_b64.ast end}
+app-string-b64  = b64-S *(4(b64dig b64-S))
+                  [b64dig b64-S b64dig b64-S
+                   ["=" b64-S "=" / b64dig b64-S ["="]] b64-S]
+                  ["#" *i-non-lf]{
+                   def ast
+                     t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
+                     if last = t[-1]
+                       last << "=" * (4 - last.size)
+                     end
+                     b = t.join.tr("-_", "+/")
+                     begin
+                       b.unpack("m0")[0]
+                     rescue ArgumentError
+                       raise ArgumentError, "cbor-diagnostic: invalid base64 #{b.inspect}", caller[1..-1]
+                     end
+                   end
+}
+b64dig          = ALPHA / DIGIT / "-" / "_" / "+" / "/"
+b64-S           = *i-blank *(b64-comment *i-blank)
+b64-comment     = "#" *i-non-lf %x0A

@@ -157,7 +157,7 @@ rule sqstr
 }
 end
 rule bstr
-(sq_app_string_h / app_string / sqstr / app_sequence / embedded)
+(sq_app_string_h / sq_app_string_b64 / app_string / sqstr / app_sequence / embedded)
 end
 rule tstr
 (DQUOTE double_quoted* DQUOTE) {
@@ -367,6 +367,9 @@ end
 rule ucldh
 (ucalpha / DIGIT / "-")
 end
+rule ALPHA
+(lcalpha / ucalpha)
+end
 rule wordchar
 ("_" / lcalpha / DIGIT / ucalpha)
 end
@@ -381,6 +384,12 @@ rule i_LF
 end
 rule i_CR
 ("\r" / "\\r" / ("\\u" ("000D"i / ("{" "0"* "D}"i))))
+end
+rule i_blank
+(i_LF / i_CR / " ")
+end
+rule i_non_lf
+(i_HT / i_CR / [\ -&] / "\\'" / [\(-\[] / "\\\\" / [\]-] / i_NONASCII)
 end
 rule i_NONASCII
 (NONASCII / ("\\u" ESCGE7F))
@@ -402,7 +411,7 @@ rule app_string_h
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
-} / (ellipsis h_S) {def ast; ellipsis.ast end})* ("#" h_non_lf*)?) {
+} / (ellipsis h_S) {def ast; ellipsis.ast end})* ("#" i_non_lf*)?) {
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -433,20 +442,42 @@ rule app_string_h
   end
 }
 end
-rule h_blank
-(i_HT / i_LF / i_CR / " ")
+rule h_S
+(i_blank* (h_comment i_blank*)*)
 end
 rule h_non_slash
-(h_blank / [!-&] / "\\'" / [\(-\.] / [0-\[] / "\\\\" / [\]-] / i_NONASCII)
-end
-rule h_non_lf
-(i_HT / i_CR / [\ -&] / "\\'" / [\(-\[] / "\\\\" / [\]-] / i_NONASCII)
-end
-rule h_S
-(h_blank* (h_comment h_blank*)*)
+(i_blank / [!-&] / "\\'" / [\(-\.] / [0-\[] / "\\\\" / [\]-] / i_NONASCII)
 end
 rule h_comment
-(("/" h_non_slash* "/") / ("#" h_non_lf* i_LF))
+(("/" h_non_slash* "/") / ("#" i_non_lf* i_LF))
+end
+rule sq_app_string_b64
+("b64'" app_string_b64 "'") {def ast; app_string_b64.ast end}
+end
+rule app_string_b64
+(b64_S ((b64dig b64_S) 4..4)* (b64dig b64_S b64dig b64_S (("=" b64_S "=") / (b64dig b64_S "="?))? b64_S)? ("#" i_non_lf*)?) {
+                   def ast
+                     t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
+                     if last = t[-1]
+                       last << "=" * (4 - last.size)
+                     end
+                     b = t.join.tr("-_", "+/")
+                     begin
+                       b.unpack("m0")[0]
+                     rescue ArgumentError
+                       raise ArgumentError, "cbor-diagnostic: invalid base64 #{b.inspect}", caller[1..-1]
+                     end
+                   end
+}
+end
+rule b64dig
+(ALPHA / DIGIT / "-" / "_" / "+" / "/")
+end
+rule b64_S
+(i_blank* (b64_comment i_blank*)*)
+end
+rule b64_comment
+("#" i_non_lf* "\n")
 end
 
 end
