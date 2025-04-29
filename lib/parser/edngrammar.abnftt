@@ -127,7 +127,8 @@ sqstr           = SQUOTE *single-quoted SQUOTE{
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
   end
 }
-bstr            = sq-app-string-h / sq-app-string-b64 /
+bstr            = (sq-app-string-h&{|x|$options.integrated}){ def ast; elements[0].ast end}
+                / (sq-app-string-b64&{|x|$options.integrated}){ def ast; elements[0].ast end} /
                   app-string / sqstr / app-sequence / embedded
                   ; app-string/-sequence could be any type
 tstr            = DQUOTE *double-quoted DQUOTE{

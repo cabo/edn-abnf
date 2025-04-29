@@ -157,7 +157,7 @@ rule sqstr
 }
 end
 rule bstr
-(sq_app_string_h / sq_app_string_b64 / app_string / sqstr / app_sequence / embedded)
+(sq_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / app_string / sqstr / app_sequence / embedded)
 end
 rule tstr
 (DQUOTE double_quoted* DQUOTE) {

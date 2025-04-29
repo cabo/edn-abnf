@@ -34,7 +34,8 @@ app-prefix      = lcalpha *lcldh ; including h and b64
 app-string      = app-prefix sqstr
 app-sequence    = app-prefix "<<" seq ">>"
 sqstr           = SQUOTE *single-quoted SQUOTE
-bstr            = sq-app-string-h / sq-app-string-b64 /
+bstr            = (sq-app-string-h)
+                / (sq-app-string-b64) /
                   app-string / sqstr / app-sequence / embedded
                   ; app-string/-sequence could be any type
 tstr            = DQUOTE *double-quoted DQUOTE

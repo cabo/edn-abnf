@@ -46,6 +46,9 @@ begin
       require 'csv'
       $options.lines = v
     end
+    opts.on("-i", "--[no-]integrated", "use integrated parsers where available") do |v|
+      $options.integrated = v
+    end
     opts.on("-eEDN", "--e=EDN", "supply EDN on command line") do |v|
       $options.edn = v
     end

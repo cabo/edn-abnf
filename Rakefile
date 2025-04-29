@@ -16,6 +16,12 @@ task :v do
     sh "edn-abnf -vl #{test}"
   end
 end
+task :w do
+  Dir.glob("tests/*.csv") do |test|
+    puts "______________ testing #{test}"
+    sh "edn-abnf -vli #{test}"
+  end
+end
 
 task :i => targets  do
   sh "time ./gebuin edn-abnf.gemspec"
