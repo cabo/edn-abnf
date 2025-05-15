@@ -5,11 +5,26 @@ end
 require 'treetop'
 require_relative './edngrammar'
 
+class CBOR_DIAG::App_ # fallback!
+  def self.decode(app_prefix, s)
+    if CBOR::Sequence === s
+      args = s.elements
+    else
+      args = [s]
+    end
+    CBOR::Tagged.new(999, [app_prefix, args])
+  end
+end
+
 module EDNGRAMMAR
   const_set(:APPS, Hash.new { |h, k|
               h[k] = begin ::CBOR_DIAG.const_get("App_#{k.downcase}")
                      rescue NameError
-                       raise ArgumentError, "cbor-diagnostic: Unknown application-oriented extension '#{k}'", caller
+                       if $options.fallback
+                         ::CBOR_DIAG::App_
+                       else
+                         raise ArgumentError, "cbor-diagnostic: Unknown application-oriented extension '#{k}'", caller
+                       end
                      end
             }) unless const_defined?(:APPS)
 end

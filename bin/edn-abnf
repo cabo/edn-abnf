@@ -68,6 +68,9 @@ begin
         end
       end
     end
+    opts.on("-f", "--[no-]fallback", "use tag 999 for unknown app-extensions") do |v|
+      $options.fallback = v
+    end
   end
   op.parse!
 rescue Exception => e
