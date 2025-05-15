@@ -72,13 +72,14 @@ begin
   op.parse!
 rescue Exception => e
   warn e
+  warn op
   exit 1
 end
 
 
 if !$options.edn
   if ARGV == []
-    puts op
+    warn op
     exit 1
   end
   $options.edn = ARGF.read
