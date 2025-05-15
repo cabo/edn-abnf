@@ -34,6 +34,8 @@ require 'ostruct'
 
 $error = 0
 
+output_formats = [:basic, :neat, :json, :yaml, :edn, :diag, :pretty, :hex, :cbor]
+
 $options = OpenStruct.new
 begin
   op = OptionParser.new do |opts|
@@ -53,8 +55,8 @@ begin
       $options.edn = v
     end
     opts.on("-tFMT", "--to=FMT",
-            [:basic, :neat, :json, :yaml, :edn, :diag, :pretty, :hex],
-            "Target format (default: diag)") do |v|
+            output_formats,
+            "Target format (#{output_formats.join("/")}, default: diag)") do |v|
       $options.target = v
     end
     opts.on("-aAPP", "--app=APP", "Load application extension") do |v|
@@ -165,17 +167,23 @@ when :yaml
   puts result.to_yaml
 when :edn, :diag, nil
   puts result.cbor_diagnostic
-when :pretty, :hex
+when :pretty, :hex, :cbor
   # XXX can't do Box yet
   enc = if CBOR::Sequence === result
           result.to_cborseq
         else
           result.to_cbor
         end
-  if $options.target == :pretty
+  case $options.target
+  when :pretty
     puts CBOR::pretty_seq(enc)
-  else
+  when :hex
     puts enc.bytes.map{|x| "%02x" % x}.join
+  when :cbor
+    $stdout.binmode
+    print enc
+  else
+    fail "Cannot happen"
   end
 else
   warn ["Unknown target format: ", $options.target].inspect
