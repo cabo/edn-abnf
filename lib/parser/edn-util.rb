@@ -39,6 +39,26 @@ class Treetop::Runtime::SyntaxNode
   def hex_value
     text_value.to_i(16)
   end
+  def app_parser_level1_diagnostics(e, node)
+    outbytes = 0
+    intv = node.interval.end...(node.interval.end+1) # default: closing '
+    node.elements.each_with_index do |el, i|
+      outbytes += el.ast.size
+      if outbytes > e.position
+        intv = el.interval
+        break
+      end
+    end
+    failure_index = intv.begin
+    failure_line = node.input.line_of(failure_index)
+    failure_column = node.input.column_of(failure_index)
+    if line = node.input.lines.to_a[failure_line - 1]
+      reason = "** Line #{failure_line}, column #{failure_column}:\n"
+      reason << line
+      reason << "\n#{'~' * (failure_column - 1)}#{'^' * intv.size}"
+    end
+    warn reason
+  end
 end
 
 
