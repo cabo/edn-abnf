@@ -64,7 +64,7 @@ begin
         if nm =~ /\A[a-z][a-z0-9]*\z/
           require "cbor-diagnostic-app/#{nm}"
         else
-          raise ArgumentError.new("edn-abnf: app-extension name #{nm} not valid")
+          raise ArgumentError.new("edn-abnf: app-extension name #{nm} not installed")
         end
       end
     end
