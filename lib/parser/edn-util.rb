@@ -52,8 +52,8 @@ class Treetop::Runtime::SyntaxNode
     failure_index = intv.begin
     failure_line = node.input.line_of(failure_index)
     failure_column = node.input.column_of(failure_index)
+    reason = "** Line #{failure_line}, column #{failure_column}:\n"
     if line = node.input.lines.to_a[failure_line - 1]
-      reason = "** Line #{failure_line}, column #{failure_column}:\n"
       reason << line
       reason << "\n#{'~' * (failure_column - 1)}#{'^' * intv.size}"
     end
