@@ -156,7 +156,7 @@ end
 begin
   edn = EDN.from_edn(edn_file)
   result = edn.tree               # XXX .tree?
-rescue ArgumentError => e
+rescue CBOR_DIAG::AppParseError, ArgumentError => e
   puts "** #{e}"
   exit 1
 end

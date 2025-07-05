@@ -5,7 +5,7 @@ class CBOR_DIAG::App_b64
     parser = B64GRAMMARParser.new #  B? XXX
     ast = parser.parse(s)
     if !ast
-      raise ArgumentError, "cbor-diagnostic: Parse Error in b64'#{s}':\n" << EDN.reason(parser, s)
+      raise CBOR_DIAG::AppParseError.new("cbor-diagnostic: Parse Error in b64'#{s}':\n" << EDN.reason(parser, s), parser.failure_index)
     end
     # lazy -- not using parse tree...:
     t = s.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)

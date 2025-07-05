@@ -11,7 +11,7 @@ class CBOR_DIAG::App_dt
     parser = DTGRAMMARParser.new
     ast = parser.parse(s)
     if !ast
-      raise ArgumentError, "cbor-diagnostic: Parse Error in dt'#{s}':\n" << EDN.reason(parser, s)
+      raise CBOR_DIAG::AppParseError.new("cbor-diagnostic: Parse Error in dt'#{s}':\n" << EDN.reason(parser, s), parser.failure_index)
     end
     frac = ast.has_frac != ""
 

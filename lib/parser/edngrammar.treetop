@@ -135,7 +135,12 @@ rule app_string
   def ast                       # XXX ignoring h and b64
     data = sqstr.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
     app = app_prefix.text_value
-    ::EDNGRAMMAR::APPS[app].decode(app, data)
+    begin
+      ::EDNGRAMMAR::APPS[app].decode(app, data)
+    rescue CBOR_DIAG::AppParseError => e
+      app_parser_level1_diagnostics(e, elements[1].elements[1])
+      raise e
+    end
   end
 }
 end
