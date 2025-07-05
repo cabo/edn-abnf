@@ -23,6 +23,10 @@ task :w do
   end
 end
 
+task :level do
+  sh "edn-abnf -vl tests/level-shifter.csv"
+end
+
 task :i => targets  do
   sh "time ./gebuin edn-abnf.gemspec"
 end

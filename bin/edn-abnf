@@ -6,6 +6,12 @@ require 'treetop'
 require 'json'
 require 'cbor-pretty'
 
+# Temporary fix for name conflicts between cbor-diag and edn-abnf
+diag_path = $LOAD_PATH.grep(/gems\/cbor-diag/).first
+edn_path = $LOAD_PATH.grep(/gems\/edn-abnf/).first
+$LOAD_PATH[$LOAD_PATH.index(diag_path)] = edn_path
+$LOAD_PATH << diag_path
+
 require_relative '../lib/edn-abnf.rb'
 
 def snaky(name)
