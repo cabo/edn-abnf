@@ -27,6 +27,16 @@ task :level do
   sh "edn-abnf -vl tests/level-shifter.csv"
 end
 
+task :nolev do
+  sh "edn-abnf --no-level -vl tests/level-shifter.csv >.nolev 2>&1"
+  sh "diff .nolev .seplev"
+end
+
+task :seplev do
+  sh "edn-abnf --level -vl tests/level-shifter.csv >.seplev 2>&1"
+  sh "diff .nolev .seplev"
+end
+
 task :i => targets  do
   sh "time ./gebuin edn-abnf.gemspec"
 end

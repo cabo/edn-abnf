@@ -57,6 +57,10 @@ begin
     opts.on("-i", "--[no-]integrated", "use integrated parsers where available") do |v|
       $options.integrated = v
     end
+    opts.on("--[no-]level", "use separate level shifter") do |v|
+      $options.level = v
+      $stdout.sync = true
+    end
     opts.on("-eEDN", "--e=EDN", "supply EDN on command line") do |v|
       $options.edn = v
     end
