@@ -41,12 +41,38 @@ class Treetop::Runtime::SyntaxNode
   end
   def app_parser_level1_diagnostics(e, node)
     outbytes = 0
-    intv = node.interval.end...(node.interval.end+1) # default: closing '
-    node.elements.each_with_index do |el, i|
-      outbytes += el.ast.size
-      if outbytes > e.position
-        intv = el.interval
-        break
+    if $options.level                                # do manual level-shifting
+      input = node.input                             # l1 string
+      ol1pos = l1pos = node.interval.begin           # start position
+      while outbytes <= e.position
+        outbytes += 1
+        ol1pos = l1pos
+        c1 = input[l1pos]
+        if c1 == "\\"           # escapable-s
+          c2 = input[l1pos += 1]
+          if c2 == "u"          # hexchar-s
+            c3 = input[l1pos += 1]
+            if c3 == "{"
+              l1pos = input.index("}", l1pos)
+            else
+              if (input[l1pos, 4].to_i(16) & 0xFC00) == 0xD800 # high-surrogate
+                l1pos += 6                                     # low-surrogate
+              end
+              l1pos += 3        # non-surrogate
+            end
+          end
+        end
+        l1pos += 1
+      end
+      intv = ol1pos...l1pos
+    else
+      intv = node.interval.end...(node.interval.end+1) # default: closing '
+      node.elements.each_with_index do |el, i|
+        outbytes += el.ast.size
+        if outbytes > e.position
+          intv = el.interval
+          break
+        end
       end
     end
     failure_index = intv.begin
