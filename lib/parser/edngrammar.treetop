@@ -154,6 +154,45 @@ rule app_sequence
   end
 }
 end
+rule app_rstring
+(app_prefix rawstring) {
+  def ast                       # XXX ignoring h and b64
+    data = rawstring.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
+    app = app_prefix.text_value
+    begin
+      ::EDNGRAMMAR::APPS[app].decode(app, data)
+    rescue CBOR_DIAG::AppParseError => e
+      app_parser_level1_raw_diagnostics(e, rawstring.rawcontent)
+      raise e
+    end
+  end
+}
+end
+rule rawstring
+(startrawdelim ("\r"? "\n")? rawcontent matchrawdelim) {def ast; rawcontent.text_value.gsub("\r", "") + (
+                      tv = matchrawdelim.text_value
+                      dv = startrawdelim.text_value.length
+                      tv[dv..]                      
+                      ) end}
+end
+rule rawdelim
+"`"+
+end
+rule startrawdelim
+rawdelim &{|(rd)|@rawdelim = rd.text_value}
+end
+rule matchrawdelim
+rawdelim &{|(rd)|rd.text_value.length >= @rawdelim.length}
+end
+rule shortrawdelim
+rawdelim &{|(rd)|rd.text_value.length < @rawdelim.length}
+end
+rule rawchars
+("\t" / "\n" / "\r" / [\ -_] / [a-~] / NONASCII)+
+end
+rule rawcontent
+(rawchars / shortrawdelim)+
+end
 rule sqstr
 (SQUOTE single_quoted* SQUOTE) {
   def ast
@@ -162,7 +201,7 @@ rule sqstr
 }
 end
 rule bstr
-(sq_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / app_string / sqstr / app_sequence / embedded)
+(sq_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / app_string / sqstr / app_rstring / rawstring / app_sequence / embedded)
 end
 rule tstr
 (DQUOTE double_quoted* DQUOTE) {

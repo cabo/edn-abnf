@@ -27,6 +27,10 @@ task :level do
   sh "edn-abnf -vl tests/level-shifter.csv"
 end
 
+task :raw do
+  sh "edn-abnf -vl tests/rawstrings.csv"
+end
+
 task :nolev do
   sh "edn-abnf --no-level -vl tests/level-shifter.csv >.nolev 2>&1"
   sh "diff .nolev .seplev"

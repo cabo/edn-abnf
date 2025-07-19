@@ -85,6 +85,30 @@ class Treetop::Runtime::SyntaxNode
     end
     warn reason
   end
+  def app_parser_level1_raw_diagnostics(e, node)
+    outbytes = 0
+    # do manual level-shifting
+      input = node.input                             # l1 string
+      ol1pos = l1pos = node.interval.begin           # start position
+      while outbytes <= e.position
+        ol1pos = l1pos
+        c1 = input[l1pos]
+        if c1 != "\r"           # Ignored CR doesn't generate output
+          outbytes += 1
+        end
+        l1pos += 1
+      end
+      intv = ol1pos...l1pos
+    failure_index = intv.begin
+    failure_line = node.input.line_of(failure_index)
+    failure_column = node.input.column_of(failure_index)
+    reason = "** Line #{failure_line}, column #{failure_column}:\n"
+    if line = node.input.lines.to_a[failure_line - 1]
+      reason << line
+      reason << "\n#{'~' * (failure_column - 1)}#{'^' * intv.size}"
+    end
+    warn reason
+  end
 end
 
 
