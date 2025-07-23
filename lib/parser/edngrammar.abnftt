@@ -140,7 +140,7 @@ app-rstring      = app-prefix rawstring{
   end
 }
 rawstring      = startrawdelim
-                 [[%x0d] %x0a] ; swallow up to one leading newline
+                 [newline] ; swallow up to one leading newline
                  rawcontent
                  matchrawdelim
                  {def ast; rawcontent.text_value.gsub("\r", "") + (
@@ -273,6 +273,7 @@ escapable1      = %s"b"{def ast; "\b" end} ; BS backspace U+0008
                 / %s"r"{def ast; "\r" end} ; CR carriage return U+000D
                 / %s"t"{def ast; "\t" end} ; HT horizontal tab U+0009
                 / "\"{def ast; text_value end}   ; \ backslash (reverse solidus) U+005C
+                / newline {def ast; "" end} ; swallow escaped newline
 
 escapable-d     = escapable1
                 / DQUOTE{def ast; text_value end}
@@ -325,6 +326,8 @@ unescaped       = %x0A ; new line
                      ; omit 0x5C \
                 / %x5D-7F
                 / NONASCII
+
+newline         = [%x0D] %x0A
 
 DQUOTE          = %x22    ; " double quote
 SQUOTE          = "'"     ; ' single quote

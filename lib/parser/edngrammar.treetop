@@ -169,11 +169,10 @@ rule app_rstring
 }
 end
 rule rawstring
-(startrawdelim ("\r"? "\n")? rawcontent matchrawdelim) {def ast; rawcontent.text_value.gsub("\r", "") + (
+(startrawdelim newline? rawcontent matchrawdelim) {def ast; rawcontent.text_value.gsub("\r", "") + (
                       tv = matchrawdelim.text_value
                       dv = startrawdelim.text_value.length
-                      tv[dv..]                      
-                      ) end}
+                      tv[dv..]) end}
 end
 rule rawdelim
 "`"+
@@ -327,7 +326,7 @@ rule single_quoted
 (unescaped {def ast; text_value.gsub("\r", "") end} / DQUOTE {def ast; text_value end} / ("\\" escapable_s) {def ast; escapable_s.ast end})
 end
 rule escapable1
-("b" {def ast; "\b" end} / "f" {def ast; "\f" end} / "n" {def ast; "\n" end} / "r" {def ast; "\r" end} / "t" {def ast; "\t" end} / "\\" {def ast; text_value end})
+("b" {def ast; "\b" end} / "f" {def ast; "\f" end} / "n" {def ast; "\n" end} / "r" {def ast; "\r" end} / "t" {def ast; "\t" end} / "\\" {def ast; text_value end} / newline {def ast; "" end})
 end
 rule escapable_d
 (escapable1 / DQUOTE {def ast; text_value end} / "/" {def ast; text_value end} / ("u" hexchar) {def ast; hexchar.ast end})
@@ -371,6 +370,9 @@ rule hexscalar_s
 end
 rule unescaped
 ("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-] / NONASCII)
+end
+rule newline
+("\r"? "\n")
 end
 rule DQUOTE
 "\""

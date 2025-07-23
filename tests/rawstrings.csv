@@ -97,3 +97,9 @@ poem``
 ``"
 -,"`leading backquote
 poem``"
+=,"""foo\
+bar""","""foobar"""
+=,"""foo\
+bar""","""foobar"""
+=,"1#\
+2","""foobar"""
