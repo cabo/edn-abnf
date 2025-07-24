@@ -178,13 +178,13 @@ rule rawdelim
 "`"+
 end
 rule startrawdelim
-rawdelim &{|(rd)|@rawdelim = rd.text_value}
+rawdelim &{|(rd)|@rawdelimlength = rd.text_value.length}
 end
 rule matchrawdelim
-rawdelim &{|(rd)|rd.text_value.length >= @rawdelim.length}
+rawdelim &{|(rd)|rd.text_value.length >= @rawdelimlength}
 end
 rule shortrawdelim
-rawdelim &{|(rd)|rd.text_value.length < @rawdelim.length}
+rawdelim &{|(rd)|rd.text_value.length < @rawdelimlength}
 end
 rule rawchars
 ("\t" / "\n" / "\r" / [\ -_] / [a-~] / NONASCII)+
