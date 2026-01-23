@@ -41,7 +41,7 @@ require 'ostruct'
 
 $error = 0
 
-output_formats = [:basic, :neat, :json, :yaml, :edn, :diag, :pretty, :hex, :cbor, :"decoder-test"]
+output_formats = [:basic, :neat, :json, :yaml, :edn, :diag, :pretty, :hex, :cbor, :"test-vector"]
 
 $options = OpenStruct.new
 begin
@@ -64,6 +64,9 @@ begin
     end
     opts.on("-eEDN", "--e=EDN", "supply EDN on command line") do |v|
       $options.edn = v
+    end
+    opts.on("-c", "--[no-]cbor", "input is encoded CBOR data item, not EDN") do |v|
+      $options.cbor = v
     end
     opts.on("-tFMT", "--to=FMT",
             output_formats,
@@ -90,12 +93,8 @@ rescue Exception => e
   exit 1
 end
 
-
 if !$options.edn
-  if ARGV == []
-    warn op
-    exit 1
-  end
+  ARGF.binmode if $options.cbor
   $options.edn = ARGF.read
 else
   if ARGV != []
@@ -106,6 +105,10 @@ end
 edn_file = $options.edn
 
 if $options.lines
+  if $options.cbor
+    warn "*** -l and -c don't combine"
+    exit 1
+  end
   CSV.parse(edn_file) do |ok, ednin, out|
     if ok[0] == "#"
       puts "# #{ok}, #{ednin.inspect}, #{out}" if $options.verbose
@@ -165,10 +168,17 @@ if $options.lines
 end
 
 begin
-  edn = EDN.from_edn(edn_file)
-  result = edn.tree               # XXX .tree?
+  if $options.cbor
+    result = CBOR.decode(edn_file)
+  else
+    edn = EDN.from_edn(edn_file)
+    result = edn.tree               # XXX .tree?
+  end
 rescue CBOR_DIAG::AppParseError, ArgumentError => e
   puts "** #{e}"
+  exit 1
+rescue CBOR::OutOfBytesError, RuntimeError, JSON::GeneratorError => e
+  puts "** (encoded CBOR input:) #{e}"
   exit 1
 end
 
@@ -200,7 +210,7 @@ when :pretty, :hex, :cbor
   else
     fail "Cannot happen"
   end
-when :"decoder-test"
+when :"test-vector"
   fail "Not a map" unless Hash === result
   tests = result.delete("tests")
   fail "tests not an array" unless Array === tests

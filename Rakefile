@@ -22,9 +22,15 @@ task :w do
     sh "edn-abnf -vli #{test}"
   end
 end
+
 task :tv do
   Dir["tests/cbor-test-vectors/**/*.edn"].each do |fn|
-    sh "edn-abnf -t decoder-test #{fn}"
+    sh "edn-abnf -t test-vector #{fn}"
+  end
+end
+task :tvc do
+  Dir["tests/cbor-test-vectors/**/*.cbor"].each do |fn|
+    sh "edn-abnf -ct test-vector #{fn}"
   end
 end
 
