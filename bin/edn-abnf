@@ -204,8 +204,9 @@ when :"decoder-test"
   fail "Not a map" unless Hash === result
   tests = result.delete("tests")
   fail "tests not an array" unless Array === tests
-  if result.delete("fail")
-    p result
+  failing_tests = result.delete("fail")
+  puts result.inspect << ", #{tests.size} tests"
+  if failing_tests
     tests.each do |t|
       encoded = t.delete("encoded")
       fail t unless encoded
@@ -220,7 +221,6 @@ when :"decoder-test"
       end
     end
   else
-    p result
     tests.each do |t|
       encoded = t.delete("encoded")
       fail t unless encoded
