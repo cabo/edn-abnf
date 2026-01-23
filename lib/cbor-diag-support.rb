@@ -1,4 +1,10 @@
 module CBOR
+  module CoreExt                 # extend cbor-pure
+    def cbor_same?(other)
+      to_deterministic_cbor == other.to_deterministic_cbor
+    end
+  end
+
   Box = Struct.new(:value, :options) do
     def to_s
       value.to_s

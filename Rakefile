@@ -1,7 +1,7 @@
 task :default => :build
 
 subgrammars = Dir["lib/cbor-diagnostic-app/*.abnftt"].map {|x| x.sub(/[.]abnftt$/, '.rb')}
-p subgrammars.map {|x| File.basename(x, ".rb")}
+# p subgrammars.map {|x| File.basename(x, ".rb")}
 targets = ["lib/parser/edngrammar.rb", *subgrammars]
 
 task :t do
@@ -20,6 +20,11 @@ task :w do
   Dir.glob("tests/*.csv") do |test|
     puts "______________ testing #{test}"
     sh "edn-abnf -vli #{test}"
+  end
+end
+task :tv do
+  Dir["tests/cbor-test-vectors/**/*.edn"].each do |fn|
+    sh "edn-abnf -t decoder-test #{fn}"
   end
 end
 

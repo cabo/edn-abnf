@@ -5,6 +5,7 @@ require 'yaml'
 require 'treetop'
 require 'json'
 require 'cbor-pretty'
+require 'cbor-deterministic'
 
 # Temporary fix for name conflicts between cbor-diag and edn-abnf
 diag_path = $LOAD_PATH.grep(/gems\/cbor-diag/).first
@@ -40,7 +41,7 @@ require 'ostruct'
 
 $error = 0
 
-output_formats = [:basic, :neat, :json, :yaml, :edn, :diag, :pretty, :hex, :cbor]
+output_formats = [:basic, :neat, :json, :yaml, :edn, :diag, :pretty, :hex, :cbor, :"decoder-test"]
 
 $options = OpenStruct.new
 begin
@@ -198,6 +199,45 @@ when :pretty, :hex, :cbor
     print enc
   else
     fail "Cannot happen"
+  end
+when :"decoder-test"
+  fail "Not a map" unless Hash === result
+  tests = result.delete("tests")
+  fail "tests not an array" unless Array === tests
+  if result.delete("fail")
+    p result
+    tests.each do |t|
+      encoded = t.delete("encoded")
+      fail t unless encoded
+      begin
+        r = CBOR.decode(encoded)
+        fail "#{encoded.inspect} unexpectedly decodes, as #{r.cbor_diagnostic}"
+      rescue CBOR::OutOfBytesError, RuntimeError, JSON::GeneratorError
+        # p [r, t, encoded]
+      rescue => e
+        puts "*** Unexpected error:"
+        p [e, r, t, encoded.hexi]
+      end
+    end
+  else
+    p result
+    tests.each do |t|
+      encoded = t.delete("encoded")
+      fail t unless encoded
+      roundtrip = t.delete("roundtrip")
+      fail "not implemented: roundtrip is #{roundtrip.inspect} in #{t.inspect}" if roundtrip
+      # p t
+      decoded = t.delete("decoded") { :"no-decoded"}
+      fail "no decoded" if decoded == :"no-decoded"
+      begin
+        r = CBOR.decode(encoded)
+        if !r.cbor_same?(decoded)
+          puts "*** unexpected: #{r.inspect} for #{decoded.inspect} in #{t.inspect}"
+        end
+      rescue => e
+        puts "*** decode failure: #{e}"
+      end
+    end
   end
 else
   warn ["Unknown target format: ", $options.target].inspect
