@@ -224,18 +224,22 @@ when :"decoder-test"
     tests.each do |t|
       encoded = t.delete("encoded")
       fail t unless encoded
-      roundtrip = t.delete("roundtrip")
-      fail "not implemented: roundtrip is #{roundtrip.inspect} in #{t.inspect}" if roundtrip
-      # p t
+      roundtrip = t.delete("roundtrip") { true } # default is true
       decoded = t.delete("decoded") { :"no-decoded"}
       fail "no decoded" if decoded == :"no-decoded"
       begin
         r = CBOR.decode(encoded)
         if !r.cbor_same?(decoded)
-          puts "*** unexpected: #{r.inspect} for #{decoded.inspect} in #{t.inspect}"
+          puts "*** unexpected: decoding #{r.inspect}, expected #{decoded.inspect} in #{t.inspect}"
         end
       rescue => e
         puts "*** decode failure: #{e}"
+      end
+      if roundtrip
+        rt = CBOR.encode(decoded)
+        if rt != encoded
+          puts "*** unexpected: encoding #{rt.inspect}, expected #{encoded.inspect} in #{t.inspect}"
+        end
       end
     end
   end
