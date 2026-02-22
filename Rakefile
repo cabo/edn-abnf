@@ -66,6 +66,7 @@ end
 
 rule '.treetop' => ['.abnftt'] do |t|
   sh "abnftt #{t.source}"
+  sh "cd lib/parser; patch < edngrammar-treetop.patch"
   bn = t.source.sub(/[.]abnftt$/, '')
   sh "diff #{bn}.abnf #{bn}.abnf.orig"
 end
