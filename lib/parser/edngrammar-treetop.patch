@@ -1,0 +1,11 @@
+--- edngrammar.treetop1	2026-02-22 11:28:04.000000000 +0100
++++ edngrammar.treetop	2026-02-22 11:12:21.000000000 +0100
+@@ -369,7 +369,7 @@
+ (("10" HEXDIG 4..4) / (HEXDIG1 HEXDIG 4..4) / non_surrogate_1 / (HEXDIG1 HEXDIG 2..2) / (("1" / "8" / "9" / HEXDIGA) HEXDIG) / "7F"i / HEXDIG1)
+ end
+ rule unescaped
+-("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-] / NONASCII)
++[\n\r\ -!\#-&\(-\[\]--퟿-􏿿]+
+ end
+ rule newline
+ ("\r"? "\n")

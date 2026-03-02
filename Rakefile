@@ -25,12 +25,12 @@ end
 
 task :tv do
   Dir["tests/cbor-test-vectors/**/*.edn"].each do |fn|
-    sh "edn-abnf -t test-vector #{fn}"
+    sh "edn-abnf -afloat -t test-vector #{fn}"
   end
 end
 task :tvc do
   Dir["tests/cbor-test-vectors/**/*.cbor"].each do |fn|
-    sh "edn-abnf -ct test-vector #{fn}"
+    sh "edn-abnf -afloat -ct test-vector #{fn}"
   end
 end
 
@@ -66,6 +66,7 @@ end
 
 rule '.treetop' => ['.abnftt'] do |t|
   sh "abnftt #{t.source}"
+  sh "cd lib/parser; patch < edngrammar-treetop.patch"
   bn = t.source.sub(/[.]abnftt$/, '')
   sh "diff #{bn}.abnf #{bn}.abnf.orig"
 end

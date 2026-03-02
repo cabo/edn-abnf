@@ -369,7 +369,7 @@ rule hexscalar_s
 (("10" HEXDIG 4..4) / (HEXDIG1 HEXDIG 4..4) / non_surrogate_1 / (HEXDIG1 HEXDIG 2..2) / (("1" / "8" / "9" / HEXDIGA) HEXDIG) / "7F"i / HEXDIG1)
 end
 rule unescaped
-("\n" / "\r" / [\ -!] / [\#-&] / [\(-\[] / [\]-] / NONASCII)
+[\n\r\ -!\#-&\(-\[\]--퟿-􏿿]+
 end
 rule newline
 ("\r"? "\n")
