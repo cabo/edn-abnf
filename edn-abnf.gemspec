@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'bundler', '~>1'
   s.add_development_dependency 'abnftt', '~>0.2'
   s.add_dependency 'treetop', '~>1'
-  s.add_dependency 'json', '~>2'
+  s.add_dependency 'json_pure', '~>2'
   s.add_dependency 'neatjson', '~>0.10'
   s.add_dependency 'cbor-diag', '>= 0.9.8'
 end
