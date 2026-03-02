@@ -85,6 +85,12 @@ begin
     opts.on("-f", "--[no-]fallback", "use tag 999 for unknown app-extensions") do |v|
       $options.fallback = v
     end
+    opts.on("-wCOL", "--wrap=COL", Integer, "EDN: wrap at column COL") do |v|
+      $options.wrap = v
+    end
+    opts.on("-T", "--[no-]terminator", "Format with comma as terminator") do |v|
+      $options.terminator = v
+    end
   end
   op.parse!
 rescue Exception => e
@@ -191,7 +197,7 @@ when :neat, :json
 when :yaml
   puts result.to_yaml
 when :edn, :diag, nil
-  puts result.cbor_diagnostic
+  puts result.cbor_diagnostic(wrap: $options.wrap, terminator: $options.terminator)
 when :pretty, :hex, :cbor
   # XXX can't do Box yet
   enc = if CBOR::Sequence === result
