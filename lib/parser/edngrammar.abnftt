@@ -243,9 +243,10 @@ stars           = 1*"*"
 c-comment-start = stars&{|(st)|@stars = st.text_value.length}
 c-comment-mid   = [stars] 1*non-slash-non-star
                 / [c-comment-short] "/"
-c-comment-short = stars&{|(st)|st.text_value.length < @stars}
-c-comment-end   = stars&{|(st)|st.text_value.length >= @stars}
-
+                  ; width (number of stars) distinguishes
+                  ; between following c-comment-short and c-comment-end
+c-comment-short = stars&{|(st)|st.text_value.length < @stars} ; width < previous c-comment-start
+c-comment-end   = stars&{|(st)|st.text_value.length >= @stars} ; width >= previous c-comment-start
 
 ; optional space
 S               = *blank *(comment *blank)

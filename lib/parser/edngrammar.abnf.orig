@@ -70,9 +70,10 @@ stars           = 1*"*"
 c-comment-start = stars
 c-comment-mid   = [stars] 1*non-slash-non-star
                 / [c-comment-short] "/"
-c-comment-short = stars
-c-comment-end   = stars
-
+                  ; width (number of stars) distinguishes
+                  ; between following c-comment-short and c-comment-end
+c-comment-short = stars ; width < previous c-comment-start
+c-comment-end   = stars ; width >= previous c-comment-start
 
 ; optional space
 S               = *blank *(comment *blank)
