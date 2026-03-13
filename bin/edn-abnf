@@ -88,14 +88,13 @@ begin
     opts.on("-wCOL", "--wrap=COL", Integer, "EDN: wrap at column COL") do |v|
       $options.wrap = v
     end
-    opts.on("-T", "--[no-]terminator", "Format with comma as terminator") do |v|
+    opts.on("-T", "--[no-]terminator", "EDN: Format with comma as terminator") do |v|
       $options.terminator = v
     end
   end
   op.parse!
 rescue Exception => e
-  warn e
-  warn op
+  warn op unless e.to_s == 'exit'
   exit 1
 end
 
