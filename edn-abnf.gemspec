@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "edn-abnf"
-  s.version = "0.5.19"
+  s.version = "0.6.1pre"
   s.summary = "CBOR Extended Diagnostic Notation (EDN) implemented in ABNF"
   s.description = %q{edn-abnf implements converters and miscellaneous tools for CBOR EDN's ABNF}
   s.author = "Carsten Bormann"

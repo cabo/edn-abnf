@@ -284,11 +284,32 @@ end
 rule non_slash
 (blank / [!-\.] / [0-] / NONASCII)
 end
+rule non_slash_non_star
+(blank / [!-\)] / [\+-\.] / [0-] / NONASCII)
+end
 rule non_lf
 ("\t" / "\r" / [\ -] / NONASCII)
 end
 rule comment
-(("/" non_slash* "/") / ("#" non_lf* "\n"))
+(("/" c_comment1) / ("#" non_lf* "\n"))
+end
+rule c_comment1
+(((non_slash_non_star non_slash*)? "/") / (c_comment_start c_comment_mid* c_comment_end "/"))
+end
+rule stars
+"*"+
+end
+rule c_comment_start
+stars &{|(st)|@stars = st.text_value.length}
+end
+rule c_comment_mid
+((stars? non_slash_non_star+) / (c_comment_short? "/"))
+end
+rule c_comment_short
+stars &{|(st)|st.text_value.length < @stars}
+end
+rule c_comment_end
+stars &{|(st)|st.text_value.length >= @stars}
 end
 rule S
 (blank* (comment blank*)*)
