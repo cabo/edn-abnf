@@ -103,7 +103,6 @@ escapable1      = %s"b" ; BS backspace U+0008
                 / %s"r" ; CR carriage return U+000D
                 / %s"t" ; HT horizontal tab U+0009
                 / "\"   ; \ backslash (reverse solidus) U+005C
-                / newline  ; swallow escaped newline
 
 escapable-d     = escapable1
                 / DQUOTE

@@ -284,7 +284,6 @@ escapable1      = %s"b"{def ast; "\b" end} ; BS backspace U+0008
                 / %s"r"{def ast; "\r" end} ; CR carriage return U+000D
                 / %s"t"{def ast; "\t" end} ; HT horizontal tab U+0009
                 / "\"{def ast; text_value end}   ; \ backslash (reverse solidus) U+005C
-                / newline {def ast; "" end} ; swallow escaped newline
 
 escapable-d     = escapable1
                 / DQUOTE{def ast; text_value end}
