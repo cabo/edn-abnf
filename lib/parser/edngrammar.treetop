@@ -200,7 +200,7 @@ rule sqstr
 }
 end
 rule bstr
-(sq_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / app_string / sqstr / app_rstring / rawstring / app_sequence / embedded)
+(sq_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / app_string / sqstr / app_rstring / rawstring / app_sequence / embedded)
 end
 rule tstr
 (DQUOTE double_quoted* DQUOTE) {
@@ -449,6 +449,9 @@ end
 rule TWOHEX1
 ((("8" / "9" / HEXDIGA) HEXDIG) / "7F"i)
 end
+rule r_non_lf
+("\t" / "\r" / [\ -_] / [a-] / NONASCII / shortrawdelim)
+end
 rule sq_app_string_h
 ("h'" app_string_h "'") {def ast; app_string_h.ast end}
 end
@@ -497,6 +500,57 @@ end
 rule h_comment
 (("/" h_non_slash* "/") / ("#" i_non_lf* i_LF))
 end
+rule fitrawdelim
+rawdelim &{|(rd)|rd.text_value.length == @rawdelimlength}
+end
+rule rh_S
+(blank* (rh_comment blank*)*)
+end
+rule rh_non_slash
+(blank / [!-\.] / [0-_] / [a-] / NONASCII / shortrawdelim)
+end
+rule rh_comment
+(("/" rh_non_slash* "/") / ("#" r_non_lf* "\n"))
+end
+rule raw_app_string_h
+("h" startrawdelim r_app_string_h) {def ast; r_app_string_h.ast end}
+end
+rule r_app_string_h
+(rh_S ((HEXDIG rh_S HEXDIG rh_S) {
+  def ast
+    Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
+  end
+} / (ellipsis h_S) {def ast; ellipsis.ast end})* (("#" r_non_lf* matchrawdelim) / fitrawdelim)) {
+  def unpack_thread(s)
+    case s[0]
+    when CBOR::Tagged
+      s[0]
+    when String
+      s.join
+    else
+      raise "@@@ unpack_thread #{s.inspect}"
+    end
+  end
+  def ast
+    e1 = elements[1].elements.map {|e| e.ast}
+    out = []
+    curr = []
+    e1.each { |el|
+      if curr.size == 0 || curr[0].class == el.class
+        curr << el
+      else
+        out << curr
+        curr = [el]
+      end
+    }
+    if out.size == 0 && (curr.size == 0 || String === curr[0])
+      curr.join.b # unpack_thread(curr)
+    else
+      CBOR::Tagged.new(888, (out << curr).map {|x| unpack_thread(x)})
+    end
+  end
+}
+end
 rule sq_app_string_b64
 ("b64'" app_string_b64 "'") {def ast; app_string_b64.ast end}
 end
@@ -524,6 +578,31 @@ rule b64_S
 end
 rule b64_comment
 ("#" i_non_lf* "\n")
+end
+rule raw_app_string_b64
+("b64" startrawdelim r_app_string_b64) {def ast; r_app_string_b64.ast end}
+end
+rule r_app_string_b64
+(b64_S ((b64dig b64_S) 4..4)* (b64dig rb64_S b64dig rb64_S (("=" rb64_S "=") / (b64dig rb64_S "="?))? rb64_S)? (("#" r_non_lf* matchrawdelim) / fitrawdelim)) {
+                   def ast
+                     t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
+                     if last = t[-1]
+                       last << "=" * (4 - last.size)
+                     end
+                     b = t.join.tr("-_", "+/")
+                     begin
+                       b.unpack("m0")[0]
+                     rescue ArgumentError
+                       raise ArgumentError, "cbor-diagnostic: invalid base64 #{b.inspect}", caller[1..-1]
+                     end
+                   end
+}
+end
+rule rb64_S
+(blank* (rb64_comment blank*)*)
+end
+rule rb64_comment
+("#" r_non_lf* "\n")
 end
 
 end

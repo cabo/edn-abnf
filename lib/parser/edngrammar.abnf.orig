@@ -47,7 +47,9 @@ rawchars       = 1*(%x09 / %x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
 rawcontent     = 1*(rawchars/shortrawdelim)
 sqstr           = SQUOTE *single-quoted SQUOTE
 bstr            = (sq-app-string-h)
-                / (sq-app-string-b64) /
+                / (sq-app-string-b64)
+                / (raw-app-string-h)
+                / (raw-app-string-b64) /
                   app-string / sqstr / app-rstring / rawstring / app-sequence / embedded
                   ; app-string/-sequence could be any type
 tstr            = DQUOTE *double-quoted DQUOTE
@@ -188,6 +190,8 @@ FOURHEX1 = (DIGIT1 / "A"/"B"/"C" / "E"/"F") 3HEXDIG
 ; 00xx - ASCII + 007F
 TWOHEX1  = ("8"/"9" / HEXDIGA) HEXDIG / "7F"
 
+r-non-lf = %x09 / %x0D / %x20-5f / %x61-7f / NONASCII / shortrawdelim
+
 ;; integrated parser for h''
 
 sq-app-string-h = %s"h'" app-string-h "'"
@@ -200,6 +204,22 @@ h-non-slash = i-blank / %x21-26 / "\'" / %x28-2e
 h-comment = "/" *(h-non-slash) "/"
           / "#" *(i-non-lf) i-LF
 
+
+;; integrated parser for h``
+
+fitrawdelim  = rawdelim
+
+rh-S = *(blank) *(rh-comment *(blank))
+rh-non-slash = blank / %x21-2e / %x30-5f / %x61-7f / NONASCII / shortrawdelim
+rh-comment = "/" *(rh-non-slash) "/"
+          / "#" *(r-non-lf) %x0A
+
+
+raw-app-string-h = %s"h" startrawdelim r-app-string-h
+r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S / ellipsis h-S)
+    ("#" *(r-non-lf) matchrawdelim / fitrawdelim)
+
+
 ;; integrated parser for b64''
 
 sq-app-string-b64 = %s"b64'" app-string-b64 "'"
@@ -210,3 +230,14 @@ app-string-b64  = b64-S *(4(b64dig b64-S))
 b64dig          = ALPHA / DIGIT / "-" / "_" / "+" / "/"
 b64-S           = *i-blank *(b64-comment *i-blank)
 b64-comment     = "#" *i-non-lf %x0A
+
+
+;; integrated parser for b64``
+
+raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64
+r-app-string-b64  = b64-S *(4(b64dig b64-S))
+                  [b64dig rb64-S b64dig rb64-S
+                   ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
+                  ("#" *r-non-lf matchrawdelim / fitrawdelim)
+rb64-S           = *blank *(rb64-comment *blank)
+rb64-comment     = "#" *r-non-lf %x0A

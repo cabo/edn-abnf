@@ -159,7 +159,9 @@ sqstr           = SQUOTE *single-quoted SQUOTE{
   end
 }
 bstr            = (sq-app-string-h&{|x|$options.integrated}){ def ast; elements[0].ast end}
-                / (sq-app-string-b64&{|x|$options.integrated}){ def ast; elements[0].ast end} /
+                / (sq-app-string-b64&{|x|$options.integrated}){ def ast; elements[0].ast end}
+                / (raw-app-string-h&{|x|$options.integrated}){ def ast; elements[0].ast end}
+                / (raw-app-string-b64&{|x|$options.integrated}){ def ast; elements[0].ast end} /
                   app-string / sqstr / app-rstring / rawstring / app-sequence / embedded
                   ; app-string/-sequence could be any type
 tstr            = DQUOTE *double-quoted DQUOTE{
@@ -373,6 +375,8 @@ FOURHEX1 = (DIGIT1 / "A"/"B"/"C" / "E"/"F") 3HEXDIG
 ; 00xx - ASCII + 007F
 TWOHEX1  = ("8"/"9" / HEXDIGA) HEXDIG / "7F"
 
+r-non-lf = %x09 / %x0D / %x20-5f / %x61-7f / NONASCII / shortrawdelim
+
 ;; integrated parser for h''
 
 sq-app-string-h = %s"h'" app-string-h "'"{def ast; app_string_h.ast end}
@@ -418,6 +422,55 @@ h-non-slash = i-blank / %x21-26 / "\'" / %x28-2e
 h-comment = "/" *(h-non-slash) "/"
           / "#" *(i-non-lf) i-LF
 
+
+;; integrated parser for h``
+
+fitrawdelim  = rawdelim&{|(rd)|rd.text_value.length == @rawdelimlength}
+
+rh-S = *(blank) *(rh-comment *(blank))
+rh-non-slash = blank / %x21-2e / %x30-5f / %x61-7f / NONASCII / shortrawdelim
+rh-comment = "/" *(rh-non-slash) "/"
+          / "#" *(r-non-lf) %x0A
+
+
+raw-app-string-h = %s"h" startrawdelim r-app-string-h{def ast; r_app_string_h.ast end}
+r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S{
+  def ast
+    Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
+  end
+} / ellipsis h-S{def ast; ellipsis.ast end})
+    ("#" *(r-non-lf) matchrawdelim / fitrawdelim) {
+  def unpack_thread(s)
+    case s[0]
+    when CBOR::Tagged
+      s[0]
+    when String
+      s.join
+    else
+      raise "@@@ unpack_thread #{s.inspect}"
+    end
+  end
+  def ast
+    e1 = elements[1].elements.map {|e| e.ast}
+    out = []
+    curr = []
+    e1.each { |el|
+      if curr.size == 0 || curr[0].class == el.class
+        curr << el
+      else
+        out << curr
+        curr = [el]
+      end
+    }
+    if out.size == 0 && (curr.size == 0 || String === curr[0])
+      curr.join.b # unpack_thread(curr)
+    else
+      CBOR::Tagged.new(888, (out << curr).map {|x| unpack_thread(x)})
+    end
+  end
+}
+
+
 ;; integrated parser for b64''
 
 sq-app-string-b64 = %s"b64'" app-string-b64 "'"{def ast; app_string_b64.ast end}
@@ -441,3 +494,28 @@ app-string-b64  = b64-S *(4(b64dig b64-S))
 b64dig          = ALPHA / DIGIT / "-" / "_" / "+" / "/"
 b64-S           = *i-blank *(b64-comment *i-blank)
 b64-comment     = "#" *i-non-lf %x0A
+
+
+;; integrated parser for b64``
+
+raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64{def ast; r_app_string_b64.ast end}
+r-app-string-b64  = b64-S *(4(b64dig b64-S))
+                  [b64dig rb64-S b64dig rb64-S
+                   ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
+                  ("#" *r-non-lf matchrawdelim / fitrawdelim){
+                   def ast
+                     t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
+                     if last = t[-1]
+                       last << "=" * (4 - last.size)
+                     end
+                     b = t.join.tr("-_", "+/")
+                     begin
+                       b.unpack("m0")[0]
+                     rescue ArgumentError
+                       raise ArgumentError, "cbor-diagnostic: invalid base64 #{b.inspect}", caller[1..-1]
+                     end
+                   end
+}
+rb64-S           = *blank *(rb64-comment *blank)
+rb64-comment     = "#" *r-non-lf %x0A
+
