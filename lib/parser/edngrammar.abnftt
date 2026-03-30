@@ -379,8 +379,8 @@ r-non-lf = %x09 / %x0D / %x20-5f / %x61-7f / NONASCII / shortrawdelim
 
 ;; integrated parser for h''
 
-sq-app-string-h = %s"h'" app-string-h "'"{def ast; app_string_h.ast end}
-app-string-h = h-S *(HEXDIG h-S HEXDIG h-S{
+sq-app-string-h = %s"h'" s-app-string-h "'"{def ast; s_app_string_h.ast end}
+s-app-string-h = h-S *(HEXDIG h-S HEXDIG h-S{
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
@@ -438,7 +438,7 @@ r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S{
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
-} / ellipsis h-S{def ast; ellipsis.ast end})
+} / ellipsis rh-S{def ast; ellipsis.ast end})
     ("#" *(r-non-lf) matchrawdelim / fitrawdelim) {
   def unpack_thread(s)
     case s[0]
@@ -473,8 +473,8 @@ r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S{
 
 ;; integrated parser for b64''
 
-sq-app-string-b64 = %s"b64'" app-string-b64 "'"{def ast; app_string_b64.ast end}
-app-string-b64  = b64-S *(4(b64dig b64-S))
+sq-app-string-b64 = %s"b64'" s-app-string-b64 "'"{def ast; s_app_string_b64.ast end}
+s-app-string-b64  = b64-S *(4(b64dig b64-S))
                   [b64dig b64-S b64dig b64-S
                    ["=" b64-S "=" / b64dig b64-S ["="]] b64-S]
                   ["#" *i-non-lf]{
@@ -499,7 +499,7 @@ b64-comment     = "#" *i-non-lf %x0A
 ;; integrated parser for b64``
 
 raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64{def ast; r_app_string_b64.ast end}
-r-app-string-b64  = b64-S *(4(b64dig b64-S))
+r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
                   ("#" *r-non-lf matchrawdelim / fitrawdelim){

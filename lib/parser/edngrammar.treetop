@@ -453,9 +453,9 @@ rule r_non_lf
 ("\t" / "\r" / [\ -_] / [a-] / NONASCII / shortrawdelim)
 end
 rule sq_app_string_h
-("h'" app_string_h "'") {def ast; app_string_h.ast end}
+("h'" s_app_string_h "'") {def ast; s_app_string_h.ast end}
 end
-rule app_string_h
+rule s_app_string_h
 (h_S ((HEXDIG h_S HEXDIG h_S) {
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
@@ -520,7 +520,7 @@ rule r_app_string_h
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
-} / (ellipsis h_S) {def ast; ellipsis.ast end})* (("#" r_non_lf* matchrawdelim) / fitrawdelim)) {
+} / (ellipsis rh_S) {def ast; ellipsis.ast end})* (("#" r_non_lf* matchrawdelim) / fitrawdelim)) {
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -552,9 +552,9 @@ rule r_app_string_h
 }
 end
 rule sq_app_string_b64
-("b64'" app_string_b64 "'") {def ast; app_string_b64.ast end}
+("b64'" s_app_string_b64 "'") {def ast; s_app_string_b64.ast end}
 end
-rule app_string_b64
+rule s_app_string_b64
 (b64_S ((b64dig b64_S) 4..4)* (b64dig b64_S b64dig b64_S (("=" b64_S "=") / (b64dig b64_S "="?))? b64_S)? ("#" i_non_lf*)?) {
                    def ast
                      t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
@@ -583,7 +583,7 @@ rule raw_app_string_b64
 ("b64" startrawdelim r_app_string_b64) {def ast; r_app_string_b64.ast end}
 end
 rule r_app_string_b64
-(b64_S ((b64dig b64_S) 4..4)* (b64dig rb64_S b64dig rb64_S (("=" rb64_S "=") / (b64dig rb64_S "="?))? rb64_S)? (("#" r_non_lf* matchrawdelim) / fitrawdelim)) {
+(rb64_S ((b64dig rb64_S) 4..4)* (b64dig rb64_S b64dig rb64_S (("=" rb64_S "=") / (b64dig rb64_S "="?))? rb64_S)? (("#" r_non_lf* matchrawdelim) / fitrawdelim)) {
                    def ast
                      t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
                      if last = t[-1]
