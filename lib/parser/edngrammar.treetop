@@ -187,7 +187,7 @@ rule shortrawdelim
 rawdelim &{|(rd)|rd.text_value.length < @rawdelimlength}
 end
 rule rawchars
-("\t" / "\n" / "\r" / [\ -_] / [a-~] / NONASCII)+
+("\n" / "\r" / [\ -_] / [a-~] / NONASCII)+
 end
 rule rawcontent
 (rawchars / shortrawdelim)+
@@ -280,6 +280,9 @@ rule keyp
 end
 rule blank
 ("\t" / "\n" / "\r" / " ")
+end
+rule lblank
+("\n" / " ")
 end
 rule non_slash
 (blank / [!-\.] / [0-] / NONASCII)
@@ -450,7 +453,7 @@ rule TWOHEX1
 ((("8" / "9" / HEXDIGA) HEXDIG) / "7F"i)
 end
 rule r_non_lf
-("\t" / "\r" / [\ -_] / [a-] / NONASCII / shortrawdelim)
+("\r" / [\ -_] / [a-] / NONASCII / shortrawdelim)
 end
 rule sq_app_string_h
 ("h'" s_app_string_h "'") {def ast; s_app_string_h.ast end}
@@ -504,10 +507,10 @@ rule fitrawdelim
 rawdelim &{|(rd)|rd.text_value.length == @rawdelimlength}
 end
 rule rh_S
-(blank* (rh_comment blank*)*)
+(lblank* (rh_comment lblank*)*)
 end
 rule rh_non_slash
-(blank / [!-\.] / [0-_] / [a-] / NONASCII / shortrawdelim)
+(lblank / [!-\.] / [0-_] / [a-] / NONASCII / shortrawdelim)
 end
 rule rh_comment
 (("/" rh_non_slash* "/") / ("#" r_non_lf* "\n"))
@@ -599,7 +602,7 @@ rule r_app_string_b64
 }
 end
 rule rb64_S
-(blank* (rb64_comment blank*)*)
+(lblank* (rb64_comment lblank*)*)
 end
 rule rb64_comment
 ("#" r_non_lf* "\n")

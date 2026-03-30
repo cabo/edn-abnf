@@ -151,7 +151,7 @@ rawdelim       = 1*"`"
 startrawdelim  = rawdelim&{|(rd)|@rawdelimlength = rd.text_value.length}
 matchrawdelim  = rawdelim&{|(rd)|rd.text_value.length >= @rawdelimlength}
 shortrawdelim  = rawdelim&{|(rd)|rd.text_value.length < @rawdelimlength}
-rawchars       = 1*(%x09 / %x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
+rawchars       = 1*(%x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
 rawcontent     = 1*(rawchars/shortrawdelim)
 sqstr           = SQUOTE *single-quoted SQUOTE{
   def ast
@@ -232,8 +232,9 @@ keyp            = item S ":" S item{
   end
 }
 
-; We allow %x09 HT in prose, but not in strings
+; We allow %x09 HT in prose, but not in string literals
 blank           = %x09 / %x0A / %x0D / %x20
+lblank          = %x0A / %x20  ; Not HT or CR (gone)
 non-slash       = blank / %x21-2e / %x30-7F / NONASCII
 non-lf          = %x09 / %x0D / %x20-7F / NONASCII
 comment         = "/" *non-slash "/"
@@ -375,7 +376,7 @@ FOURHEX1 = (DIGIT1 / "A"/"B"/"C" / "E"/"F") 3HEXDIG
 ; 00xx - ASCII + 007F
 TWOHEX1  = ("8"/"9" / HEXDIGA) HEXDIG / "7F"
 
-r-non-lf = %x09 / %x0D / %x20-5f / %x61-7f / NONASCII / shortrawdelim
+r-non-lf = %x0D / %x20-5f / %x61-7f / NONASCII / shortrawdelim
 
 ;; integrated parser for h''
 
@@ -427,8 +428,8 @@ h-comment = "/" *(h-non-slash) "/"
 
 fitrawdelim  = rawdelim&{|(rd)|rd.text_value.length == @rawdelimlength}
 
-rh-S = *(blank) *(rh-comment *(blank))
-rh-non-slash = blank / %x21-2e / %x30-5f / %x61-7f / NONASCII / shortrawdelim
+rh-S = *(lblank) *(rh-comment *(lblank))
+rh-non-slash = lblank / %x21-2e / %x30-5f / %x61-7f / NONASCII / shortrawdelim
 rh-comment = "/" *(rh-non-slash) "/"
           / "#" *(r-non-lf) %x0A
 
@@ -516,6 +517,6 @@ r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                      end
                    end
 }
-rb64-S           = *blank *(rb64-comment *blank)
+rb64-S           = *lblank *(rb64-comment *lblank)
 rb64-comment     = "#" *r-non-lf %x0A
 
