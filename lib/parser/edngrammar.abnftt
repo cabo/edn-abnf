@@ -237,8 +237,9 @@ blank           = %x09 / %x0A / %x0D / %x20
 lblank          = %x0A / %x20  ; Not HT or CR (gone)
 non-slash       = blank / %x21-2e / %x30-7F / NONASCII
 non-lf          = %x09 / %x0D / %x20-7F / NONASCII
-comment         = "/" *non-slash "/"
-                / "#" *non-lf %x0A
+eol-comment     = "#" / "//"
+comment         = "/" 1*non-slash "/"
+                / eol-comment *non-lf %x0A
 ; optional space
 S               = *blank *(comment *blank)
 ; mandatory space
@@ -386,7 +387,7 @@ s-app-string-h = h-S *(HEXDIG h-S HEXDIG h-S{
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
 } / ellipsis h-S{def ast; ellipsis.ast end})
-    ["#" *(i-non-lf)]{
+    [eol-comment *i-non-lf]{
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -420,8 +421,8 @@ s-app-string-h = h-S *(HEXDIG h-S HEXDIG h-S{
 h-S = *(i-blank) *(h-comment *(i-blank))
 h-non-slash = i-blank / %x21-26 / "\'" / %x28-2e
             / %x30-5b / "\\" / %x5d-7f / i-NONASCII
-h-comment = "/" *(h-non-slash) "/"
-          / "#" *(i-non-lf) i-LF
+h-comment = "/" 1*h-non-slash "/"
+          / eol-comment *i-non-lf i-LF
 
 
 ;; integrated parser for h``
@@ -430,8 +431,8 @@ fitrawdelim  = rawdelim&{|(rd)|rd.text_value.length == @rawdelimlength}
 
 rh-S = *(lblank) *(rh-comment *(lblank))
 rh-non-slash = lblank / %x21-2e / %x30-5f / %x61-7f / NONASCII / shortrawdelim
-rh-comment = "/" *(rh-non-slash) "/"
-          / "#" *(r-non-lf) %x0A
+rh-comment = "/" 1*rh-non-slash "/"
+           / eol-comment *r-non-lf %x0A
 
 
 raw-app-string-h = %s"h" startrawdelim r-app-string-h{def ast; r_app_string_h.ast end}
@@ -440,7 +441,7 @@ r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S{
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
 } / ellipsis rh-S{def ast; ellipsis.ast end})
-    ("#" *(r-non-lf) matchrawdelim / fitrawdelim) {
+    (eol-comment *r-non-lf matchrawdelim / fitrawdelim) {
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -478,7 +479,7 @@ sq-app-string-b64 = %s"b64'" s-app-string-b64 "'"{def ast; s_app_string_b64.ast 
 s-app-string-b64  = b64-S *(4(b64dig b64-S))
                   [b64dig b64-S b64dig b64-S
                    ["=" b64-S "=" / b64dig b64-S ["="]] b64-S]
-                  ["#" *i-non-lf]{
+                  [eol-comment *i-non-lf]{
                    def ast
                      t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
                      if last = t[-1]
@@ -494,7 +495,7 @@ s-app-string-b64  = b64-S *(4(b64dig b64-S))
 }
 b64dig          = ALPHA / DIGIT / "-" / "_" / "+" / "/"
 b64-S           = *i-blank *(b64-comment *i-blank)
-b64-comment     = "#" *i-non-lf %x0A
+b64-comment     = eol-comment *i-non-lf %x0A
 
 
 ;; integrated parser for b64``
@@ -503,7 +504,7 @@ raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64{def ast; r_app_strin
 r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
-                  ("#" *r-non-lf matchrawdelim / fitrawdelim){
+                  (eol-comment *r-non-lf matchrawdelim / fitrawdelim){
                    def ast
                      t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
                      if last = t[-1]
@@ -518,5 +519,5 @@ r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                    end
 }
 rb64-S           = *lblank *(rb64-comment *lblank)
-rb64-comment     = "#" *r-non-lf %x0A
+rb64-comment     = eol-comment *r-non-lf %x0A
 

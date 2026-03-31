@@ -64,8 +64,9 @@ blank           = %x09 / %x0A / %x0D / %x20
 lblank          = %x0A / %x20  ; Not HT or CR (gone)
 non-slash       = blank / %x21-2e / %x30-7F / NONASCII
 non-lf          = %x09 / %x0D / %x20-7F / NONASCII
-comment         = "/" *non-slash "/"
-                / "#" *non-lf %x0A
+eol-comment     = "#" / "//"
+comment         = "/" 1*non-slash "/"
+                / eol-comment *non-lf %x0A
 ; optional space
 S               = *blank *(comment *blank)
 ; mandatory space
@@ -197,13 +198,13 @@ r-non-lf = %x0D / %x20-5f / %x61-7f / NONASCII / shortrawdelim
 
 sq-app-string-h = %s"h'" s-app-string-h "'"
 s-app-string-h = h-S *(HEXDIG h-S HEXDIG h-S / ellipsis h-S)
-    ["#" *(i-non-lf)]
+    [eol-comment *i-non-lf]
 
 h-S = *(i-blank) *(h-comment *(i-blank))
 h-non-slash = i-blank / %x21-26 / "\'" / %x28-2e
             / %x30-5b / "\\" / %x5d-7f / i-NONASCII
-h-comment = "/" *(h-non-slash) "/"
-          / "#" *(i-non-lf) i-LF
+h-comment = "/" 1*h-non-slash "/"
+          / eol-comment *i-non-lf i-LF
 
 
 ;; integrated parser for h``
@@ -212,13 +213,13 @@ fitrawdelim  = rawdelim
 
 rh-S = *(lblank) *(rh-comment *(lblank))
 rh-non-slash = lblank / %x21-2e / %x30-5f / %x61-7f / NONASCII / shortrawdelim
-rh-comment = "/" *(rh-non-slash) "/"
-          / "#" *(r-non-lf) %x0A
+rh-comment = "/" 1*rh-non-slash "/"
+           / eol-comment *r-non-lf %x0A
 
 
 raw-app-string-h = %s"h" startrawdelim r-app-string-h
 r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S / ellipsis rh-S)
-    ("#" *(r-non-lf) matchrawdelim / fitrawdelim)
+    (eol-comment *r-non-lf matchrawdelim / fitrawdelim)
 
 
 ;; integrated parser for b64''
@@ -227,10 +228,10 @@ sq-app-string-b64 = %s"b64'" s-app-string-b64 "'"
 s-app-string-b64  = b64-S *(4(b64dig b64-S))
                   [b64dig b64-S b64dig b64-S
                    ["=" b64-S "=" / b64dig b64-S ["="]] b64-S]
-                  ["#" *i-non-lf]
+                  [eol-comment *i-non-lf]
 b64dig          = ALPHA / DIGIT / "-" / "_" / "+" / "/"
 b64-S           = *i-blank *(b64-comment *i-blank)
-b64-comment     = "#" *i-non-lf %x0A
+b64-comment     = eol-comment *i-non-lf %x0A
 
 
 ;; integrated parser for b64``
@@ -239,6 +240,6 @@ raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64
 r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
-                  ("#" *r-non-lf matchrawdelim / fitrawdelim)
+                  (eol-comment *r-non-lf matchrawdelim / fitrawdelim)
 rb64-S           = *lblank *(rb64-comment *lblank)
-rb64-comment     = "#" *r-non-lf %x0A
+rb64-comment     = eol-comment *r-non-lf %x0A

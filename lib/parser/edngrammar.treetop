@@ -290,8 +290,11 @@ end
 rule non_lf
 ("\t" / "\r" / [\ -] / NONASCII)
 end
+rule eol_comment
+("#" / "//")
+end
 rule comment
-(("/" non_slash* "/") / ("#" non_lf* "\n"))
+(("/" non_slash+ "/") / (eol_comment non_lf* "\n"))
 end
 rule S
 (blank* (comment blank*)*)
@@ -463,7 +466,7 @@ rule s_app_string_h
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
-} / (ellipsis h_S) {def ast; ellipsis.ast end})* ("#" i_non_lf*)?) {
+} / (ellipsis h_S) {def ast; ellipsis.ast end})* (eol_comment i_non_lf*)?) {
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -501,7 +504,7 @@ rule h_non_slash
 (i_blank / [!-&] / "\\'" / [\(-\.] / [0-\[] / "\\\\" / [\]-] / i_NONASCII)
 end
 rule h_comment
-(("/" h_non_slash* "/") / ("#" i_non_lf* i_LF))
+(("/" h_non_slash+ "/") / (eol_comment i_non_lf* i_LF))
 end
 rule fitrawdelim
 rawdelim &{|(rd)|rd.text_value.length == @rawdelimlength}
@@ -513,7 +516,7 @@ rule rh_non_slash
 (lblank / [!-\.] / [0-_] / [a-] / NONASCII / shortrawdelim)
 end
 rule rh_comment
-(("/" rh_non_slash* "/") / ("#" r_non_lf* "\n"))
+(("/" rh_non_slash+ "/") / (eol_comment r_non_lf* "\n"))
 end
 rule raw_app_string_h
 ("h" startrawdelim r_app_string_h) {def ast; r_app_string_h.ast end}
@@ -523,7 +526,7 @@ rule r_app_string_h
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
-} / (ellipsis rh_S) {def ast; ellipsis.ast end})* (("#" r_non_lf* matchrawdelim) / fitrawdelim)) {
+} / (ellipsis rh_S) {def ast; ellipsis.ast end})* ((eol_comment r_non_lf* matchrawdelim) / fitrawdelim)) {
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -558,7 +561,7 @@ rule sq_app_string_b64
 ("b64'" s_app_string_b64 "'") {def ast; s_app_string_b64.ast end}
 end
 rule s_app_string_b64
-(b64_S ((b64dig b64_S) 4..4)* (b64dig b64_S b64dig b64_S (("=" b64_S "=") / (b64dig b64_S "="?))? b64_S)? ("#" i_non_lf*)?) {
+(b64_S ((b64dig b64_S) 4..4)* (b64dig b64_S b64dig b64_S (("=" b64_S "=") / (b64dig b64_S "="?))? b64_S)? (eol_comment i_non_lf*)?) {
                    def ast
                      t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
                      if last = t[-1]
@@ -580,13 +583,13 @@ rule b64_S
 (i_blank* (b64_comment i_blank*)*)
 end
 rule b64_comment
-("#" i_non_lf* "\n")
+(eol_comment i_non_lf* "\n")
 end
 rule raw_app_string_b64
 ("b64" startrawdelim r_app_string_b64) {def ast; r_app_string_b64.ast end}
 end
 rule r_app_string_b64
-(rb64_S ((b64dig rb64_S) 4..4)* (b64dig rb64_S b64dig rb64_S (("=" rb64_S "=") / (b64dig rb64_S "="?))? rb64_S)? (("#" r_non_lf* matchrawdelim) / fitrawdelim)) {
+(rb64_S ((b64dig rb64_S) 4..4)* (b64dig rb64_S b64dig rb64_S (("=" rb64_S "=") / (b64dig rb64_S "="?))? rb64_S)? ((eol_comment r_non_lf* matchrawdelim) / fitrawdelim)) {
                    def ast
                      t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
                      if last = t[-1]
@@ -605,7 +608,7 @@ rule rb64_S
 (lblank* (rb64_comment lblank*)*)
 end
 rule rb64_comment
-("#" r_non_lf* "\n")
+(eol_comment r_non_lf* "\n")
 end
 
 end
