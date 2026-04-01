@@ -479,7 +479,7 @@ sq-app-string-b64 = %s"b64'" s-app-string-b64 "'"{def ast; s_app_string_b64.ast 
 s-app-string-b64  = b64-S *(4(b64dig b64-S))
                   [b64dig b64-S b64dig b64-S
                    ["=" b64-S "=" / b64dig b64-S ["="]] b64-S]
-                  [eol-comment *i-non-lf]{
+                  ["#" *i-non-lf]{
                    def ast
                      t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
                      if last = t[-1]
@@ -495,7 +495,7 @@ s-app-string-b64  = b64-S *(4(b64dig b64-S))
 }
 b64dig          = ALPHA / DIGIT / "-" / "_" / "+" / "/"
 b64-S           = *i-blank *(b64-comment *i-blank)
-b64-comment     = eol-comment *i-non-lf %x0A
+b64-comment     = "#" *i-non-lf %x0A
 
 
 ;; integrated parser for b64``
@@ -504,9 +504,10 @@ raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64{def ast; r_app_strin
 r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
-                  (eol-comment *r-non-lf matchrawdelim / fitrawdelim){
+                  ("#" *r-non-lf matchrawdelim / fitrawdelim){
                    def ast
-                     t = text_value.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
+                     v = elements[0..2].map {|part| part.text_value}.join
+                     t = v.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
                      if last = t[-1]
                        last << "=" * (4 - last.size)
                      end
@@ -519,5 +520,5 @@ r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                    end
 }
 rb64-S           = *lblank *(rb64-comment *lblank)
-rb64-comment     = eol-comment *r-non-lf %x0A
+rb64-comment     = "*" *r-non-lf %x0A
 

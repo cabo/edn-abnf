@@ -103,3 +103,6 @@ bar""","""foobar"""
 bar""","""foobar"""
 =,"1#\
 2","1, 2"
+=,"b64'AA//AAAA'",h`000FFF000000//foo`
+=,"b64`AA//AAAA`",h`000FFF000000`
+=,"b64`AA//AAAA#foo`",h`000FFF000000`

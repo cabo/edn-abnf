@@ -228,10 +228,10 @@ sq-app-string-b64 = %s"b64'" s-app-string-b64 "'"
 s-app-string-b64  = b64-S *(4(b64dig b64-S))
                   [b64dig b64-S b64dig b64-S
                    ["=" b64-S "=" / b64dig b64-S ["="]] b64-S]
-                  [eol-comment *i-non-lf]
+                  ["#" *i-non-lf]
 b64dig          = ALPHA / DIGIT / "-" / "_" / "+" / "/"
 b64-S           = *i-blank *(b64-comment *i-blank)
-b64-comment     = eol-comment *i-non-lf %x0A
+b64-comment     = "#" *i-non-lf %x0A
 
 
 ;; integrated parser for b64``
@@ -240,6 +240,6 @@ raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64
 r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
-                  (eol-comment *r-non-lf matchrawdelim / fitrawdelim)
+                  ("#" *r-non-lf matchrawdelim / fitrawdelim)
 rb64-S           = *lblank *(rb64-comment *lblank)
-rb64-comment     = eol-comment *r-non-lf %x0A
+rb64-comment     = "*" *r-non-lf %x0A
