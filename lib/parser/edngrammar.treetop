@@ -287,6 +287,15 @@ end
 rule non_slash
 (blank / [!-\.] / [0-] / NONASCII)
 end
+rule non_slash_star
+(blank / [!-\)] / [\+-\.] / [0-] / NONASCII)
+end
+rule non_star
+(blank / [!-\)] / [\+-] / NONASCII)
+end
+rule end_star
+(non_star* "*"+)
+end
 rule non_lf
 ("\t" / "\r" / [\ -] / NONASCII)
 end
@@ -294,7 +303,7 @@ rule eol_comment
 ("#" / "//")
 end
 rule comment
-(("/" non_slash+ "/") / (eol_comment non_lf* "\n"))
+(("/" non_slash_star non_slash* "/") / ("/*" end_star (non_slash_star end_star)* "/") / (eol_comment non_lf* "\n"))
 end
 rule S
 (blank* (comment blank*)*)
@@ -503,8 +512,17 @@ end
 rule h_non_slash
 (i_blank / [!-&] / "\\'" / [\(-\.] / [0-\[] / "\\\\" / [\]-] / i_NONASCII)
 end
+rule h_non_slash_star
+(i_blank / [!-&] / "\\'" / [\(-\)] / [\+-\.] / [0-\[] / "\\\\" / [\]-] / i_NONASCII)
+end
+rule h_non_star
+(i_blank / [!-&] / "\\'" / [\(-\)] / [\+-\[] / "\\\\" / [\]-] / i_NONASCII)
+end
+rule h_end_star
+(h_non_star* "*"+)
+end
 rule h_comment
-(("/" h_non_slash+ "/") / (eol_comment i_non_lf* i_LF))
+(("/" h_non_slash_star h_non_slash* "/") / ("/*" h_end_star (h_non_slash_star h_end_star)* "/") / (eol_comment i_non_lf* i_LF))
 end
 rule fitrawdelim
 rawdelim &{|(rd)|rd.text_value.length == @rawdelimlength}
@@ -512,11 +530,23 @@ end
 rule rh_S
 (lblank* (rh_comment lblank*)*)
 end
+rule rh_2
+([a-] / NONASCII / shortrawdelim)
+end
 rule rh_non_slash
-(lblank / [!-\.] / [0-_] / [a-] / NONASCII / shortrawdelim)
+(lblank / [!-\.] / [0-_] / rh_2)
+end
+rule rh_non_slash_star
+(lblank / [!-\)] / [\+-\.] / [0-_] / rh_2)
+end
+rule rh_non_star
+(lblank / [!-\)] / [\+-_] / rh_2)
+end
+rule rh_end_star
+(rh_non_star* "*"+)
 end
 rule rh_comment
-(("/" rh_non_slash+ "/") / (eol_comment r_non_lf* "\n"))
+(("/" rh_non_slash_star rh_non_slash* "/") / ("/*" rh_end_star (rh_non_slash_star rh_end_star)* "/") / (eol_comment r_non_lf* "\n"))
 end
 rule raw_app_string_h
 ("h" startrawdelim r_app_string_h) {def ast; r_app_string_h.ast end}

@@ -3,7 +3,7 @@ app-string-h    = S *(HEXDIG S HEXDIG S{
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
 } / ellipsis S{def ast; ellipsis.ast end})
-                  ["#" *non-lf]{
+                  [eol-comment *non-lf]{
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -37,8 +37,14 @@ ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end}
 HEXDIG          = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 DIGIT           = %x30-39 ; 0-9
 blank           = %x09 / %x0A / %x0D / %x20
-non-slash       = blank / %x21-2e / %x30-10FFFF
-non-lf          = %x09 / %x0D / %x20-D7FF / %xE000-10FFFF
+NONASCII        = %x80-D7FF / %xE000-10FFFF
+non-slash       = blank / %x21-2e / %x30-7F / NONASCII
+non-slash-star  = blank / %x21-29 / %x2b-2e / %x30-7F / NONASCII
+non-star        = blank / %x21-29 / %x2b-7F / NONASCII
+end-star        = *non-star 1*"*"
+non-lf          = %x09 / %x0D / %x20-7F / NONASCII
+eol-comment     = "#" / "//"
 S               = *blank *(comment *blank )
-comment         = "/" *non-slash "/"
-                / "#" *non-lf %x0A
+comment         = "/" non-slash-star *non-slash "/"
+                / "/*" end-star *(non-slash-star end-star) "/"
+                / eol-comment *non-lf %x0A
