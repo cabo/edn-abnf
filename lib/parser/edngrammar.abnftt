@@ -535,5 +535,4 @@ r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                    end
 }
 rb64-S           = *lblank *(rb64-comment *lblank)
-rb64-comment     = "*" *r-non-lf %x0A
-
+rb64-comment     = "#" *r-non-lf %x0A

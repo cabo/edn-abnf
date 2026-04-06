@@ -639,7 +639,7 @@ rule rb64_S
 (lblank* (rb64_comment lblank*)*)
 end
 rule rb64_comment
-("*" r_non_lf* "\n")
+("#" r_non_lf* "\n")
 end
 
 end
