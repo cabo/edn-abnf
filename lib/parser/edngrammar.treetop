@@ -265,7 +265,7 @@ rule map
     if ei == ""
       r.cbor_stream!
     elsif ei
-      warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
+      warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after {" # }
     end
     r
   end
