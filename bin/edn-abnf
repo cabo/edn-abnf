@@ -180,10 +180,10 @@ begin
     result = edn.tree               # XXX .tree?
   end
 rescue CBOR_DIAG::AppParseError, ArgumentError => e
-  puts "** #{e}"
+  warn "** #{e}"
   exit 1
 rescue CBOR::OutOfBytesError, RuntimeError, JSON::GeneratorError => e
-  puts "** (encoded CBOR input:) #{e}"
+  warn "** (encoded CBOR input:) #{e}"
   exit 1
 end
 
