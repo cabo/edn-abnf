@@ -2,7 +2,7 @@ task :default => :build
 
 subgrammars = Dir["lib/cbor-diagnostic-app/*.abnftt"].map {|x| x.sub(/[.]abnftt$/, '.rb')}
 # p subgrammars.map {|x| File.basename(x, ".rb")}
-targets = ["lib/parser/edngrammar.rb", *subgrammars]
+targets = ["lib/parser/edngrammar.rb", *subgrammars, "tests/testformatgrammar.rb"]
 
 task :t do
   Dir.glob("tests/*.csv") do |test|
@@ -66,7 +66,7 @@ end
 
 rule '.treetop' => ['.abnftt'] do |t|
   sh "abnftt #{t.source}"
-  sh "cd lib/parser; patch < edngrammar-treetop.patch"
+  system "cd lib/parser; patch --forward < edngrammar-treetop.patch"
   bn = t.source.sub(/[.]abnftt$/, '')
-  sh "diff #{bn}.abnf #{bn}.abnf.orig"
+  system "diff #{bn}.abnf #{bn}.abnf.orig"
 end

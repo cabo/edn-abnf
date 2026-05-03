@@ -1,0 +1,13 @@
+testfile = record *(newline record) [newline]
+record = field *(COMMA field)
+field = (escaped / non-escaped)
+escaped = DQUOTE *escaped1 DQUOTE
+escaped1 = TEXTDATA / COMMA / CR / LF / 2DQUOTE
+non-escaped = *TEXTDATA
+COMMA = %x2C
+CR = %x0D ;as per section 6.1 of RFC 2234 [2]
+DQUOTE =  %x22 ;as per section 6.1 of RFC 2234 [2]
+LF = %x0A ;as per section 6.1 of RFC 2234 [2]
+newline = [CR] LF ; updated from CRLF
+TEXTDATA =  %x20-21 / %x23-2B / %x2D-7E / NONASCII ; updated
+NONASCII = %x80-D7FF / %xE000-10FFFF ; as per EDN

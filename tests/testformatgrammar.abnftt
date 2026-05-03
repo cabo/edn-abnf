@@ -1,0 +1,21 @@
+testfile = record *(newline record) [newline]{def ast;
+    [elements[0].ast, *elements[1].elements.map {|el| el.elements[1].ast}].reject{|t| t==[""]} # remove empty lines
+end}
+record = field *(COMMA field){def ast;
+    [elements[0].ast, *elements[1].elements.map {|el| el.elements[1].ast}]
+end}
+field = (escaped / non-escaped)
+escaped = DQUOTE *escaped1 DQUOTE {def ast;
+    elements[1].elements.map {|el|el.ast}.join
+end}
+escaped1 = TEXTDATA / COMMA / CR / LF / 2DQUOTE{def ast
+'"'
+end}
+non-escaped = *TEXTDATA
+COMMA = %x2C
+CR = %x0D ;as per section 6.1 of RFC 2234 [2]
+DQUOTE =  %x22 ;as per section 6.1 of RFC 2234 [2]
+LF = %x0A ;as per section 6.1 of RFC 2234 [2]
+newline = [CR] LF ; updated from CRLF
+TEXTDATA =  %x20-21 / %x23-2B / %x2D-7E / NONASCII ; updated
+NONASCII = %x80-D7FF / %xE000-10FFFF ; as per EDN
