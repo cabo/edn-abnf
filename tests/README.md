@@ -16,7 +16,16 @@ Note that there is no intent to stay within the CSV dialect that github supports
 
 [CSV]: https://www.rfc-editor.org/rfc/rfc4180#section-2
 
-## Structure
+An ABNF grammar for the CSV format we use is at:
+
+https://github.com/cabo/edn-abnf/blob/main/tests/testformatgrammar.abnf.orig
+
+... and a tool (available after a local "rake build") for turning one
+or more CSV input files into a JSON array of rows, which are in turn
+JSON arrays of fields, is in:
+https://github.com/cabo/edn-abnf/blob/main/tests/testformat.rb
+
+## Structure of tests
 
 There is one test per CSV row; tests are independent.
 
