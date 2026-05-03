@@ -115,11 +115,12 @@ if $options.lines
     exit 1
   end
   CSV.parse(edn_file) do |ok, ednin, out|
-    if ok[0] == "#"
+    if !ok || ok[0] == "#" || ok == "op"
       puts "# #{ok}, #{ednin.inspect}, #{out}" if $options.verbose
       next
     end
     if ok[0] == "x"
+      warn "#{[ok, ednin, out].inspect}" unless ednin
       result = tree_from_edn_possibly_hex(ednin)
       result_hex = result.to_cbor.hexi
       result_diag = result.cbor_diagnostic
@@ -136,8 +137,8 @@ if $options.lines
     end
     begin
       ok = ok == "="
-      puts "➔ #{ok}, #{ednin}, #{out}" if $options.verbose
-      result = tree_from_edn_possibly_hex(ednin)
+      puts "➔ #{ok.inspect}, #{ednin.inspect}, #{out.inspect}" if $options.verbose
+      result = tree_from_edn_possibly_hex(ednin || "")
       diag = result.cbor_diagnostic
       if out == diag && !ok
           puts "** ≠ / #{diag.inspect} / #{out.inspect}"
@@ -151,7 +152,7 @@ if $options.lines
         end
         puts "reparsed / #{diag.inspect} / #{out.inspect}" if $options.verbose
       end
-    rescue ArgumentError => e
+    rescue CBOR_DIAG::AppParseError, ArgumentError => e
       if ok
         puts "** #{e} / #{result.inspect} / #{out.inspect}"
         $error += 1
