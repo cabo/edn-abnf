@@ -204,7 +204,7 @@ rule sqstr
 }
 end
 rule bstr
-(sq_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / app_string / sqstr / app_rstring / rawstring / app_sequence / embedded)
+(sq_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_dt &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_dt &{|x|$options.integrated} { def ast; elements[0].ast end} / app_string / sqstr / app_rstring / rawstring / app_sequence / embedded)
 end
 rule tstr
 (DQUOTE double_quoted* DQUOTE) {
@@ -644,6 +644,67 @@ rule rb64_S
 end
 rule rb64_comment
 ("#" r_non_lf* "\n")
+end
+rule app_string_dt_prefix
+("dt" / "DT")
+end
+rule sq_app_string_dt
+(app_string_dt_prefix SQUOTE app_string_dt SQUOTE) {def ast
+    CBOR_DIAG::App_dt.decode(app_string_dt_prefix.text_value, app_string_dt.ast)
+  end}
+end
+rule raw_app_string_dt
+(app_string_dt_prefix app_string_dt_raw1) {def ast
+    CBOR_DIAG::App_dt.decode(app_string_dt_prefix.text_value, app_string_dt_raw1.ast)
+  end}
+end
+rule app_string_dt_raw1
+("`" (app_string_dt_raw2 / app_string_dt_raw1) "`") {def ast; elements[1].ast; end}
+end
+rule app_string_dt_raw2
+(newline? app_string_dt) {def ast; elements[1].ast; end}
+end
+rule app_string_dt
+date_time {def ast; text_value; end}
+end
+rule date_fullyear
+DIGIT 4..4
+end
+rule date_month
+DIGIT 2..2
+end
+rule date_mday
+DIGIT 2..2
+end
+rule time_hour
+DIGIT 2..2
+end
+rule time_minute
+DIGIT 2..2
+end
+rule time_second
+DIGIT 2..2
+end
+rule time_secfrac
+("." DIGIT+)
+end
+rule time_numoffset
+(("+" / "-") time_hour ":" time_minute)
+end
+rule time_offset
+("Z"i / time_numoffset)
+end
+rule partial_time
+(time_hour ":" time_minute ":" time_second time_secfrac?)
+end
+rule full_date
+(date_fullyear "-" date_month "-" date_mday)
+end
+rule full_time
+(partial_time time_offset)
+end
+rule date_time
+(full_date "T"i full_time)
 end
 
 end
