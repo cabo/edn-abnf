@@ -105,18 +105,19 @@ T02:56:16Z`"
 =,"```
 ``d``d`````","""``d``d``"""
 =,"`x```","""x``"""
--,"`
+=,"`
 poem
-`"
--,"``
-poem``"
+`","""poem\n"""
+=,"``
+poem``","""poem"""
 -,"``
 
 double
 poem``
 ``"
--,"`leading backquote
-poem``"
+=,"`leading backquote
+poem``","""leading backquote
+poem`"""
 -,"""foo\
 bar""","""foobar"""
 -,"""foo\

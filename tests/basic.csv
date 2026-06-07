@@ -95,7 +95,7 @@ x,+0x4C.abp16,fa4a995600
 =,"'foo\'bar'","'foo\'bar'"
 -,"'foo\""bar'",
 -,"'foo\xbar'",
--,"'foo\\bar'","'foo\\bar'"
+=,"'foo\\bar'","'foo\\bar'"
 -,"'foo\u{5C}bar'","'foo\\bar'"
 -,"'foo\u{5c}bar'","'foo\\bar'"
 -,"'foo\u{05c}bar'","'foo\\bar'"
