@@ -22,10 +22,12 @@ end
 rule string1
 ((tstr / bstr) spec) {
   def ast
+    val = elements[0].ast
     if ei = spec.text_value[1..-1]
-       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} for #{elements[0].text_value}"
+       # warn "*** implementing encoding indicator #{ei.inspect} for #{elements[0].text_value}"
+       val = CBOR::Box.from_instance(val, {ei: ei})
     end
-    elements[0].ast
+    val
   end
 }
 end
@@ -69,7 +71,7 @@ rule number
 
     if ei = spec.text_value[1..-1]
        # warn "*** implementing encoding indicator #{ei.inspect} for #{elements[0].text_value}"
-       val = CBOR::Box.from_number(val, {ei: ei})
+       val = CBOR::Box.from_instance(val, {ei: ei})
     end
     val
   end
@@ -123,10 +125,12 @@ end
 rule tagged
 (uint spec "(" S item S ")") {
   def ast
+    val = CBOR::Tagged.new(uint.text_value.to_i, item.ast)
     if ei = spec.text_value[1..-1]
-       warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after tag number #{uint.text_value}"
+      val = CBOR::Box.from_instance(val, {ei: ei})
+      # warn "*** implementing encoding indicator #{ei.inspect} after tag number #{uint.text_value}"
     end
-    CBOR::Tagged.new(uint.text_value.to_i, item.ast)
+    val
   end
 }
 end
@@ -244,7 +248,8 @@ rule array
     if ei == ""
       r.cbor_stream!
     elsif ei
-      warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after ["
+      r = CBOR::Box.from_instance(r, {ei: ei})
+      # warn "*** implementing XXX encoding indicator #{ei.inspect} after ["
     end
     r
   end
@@ -269,7 +274,8 @@ rule map
     if ei == ""
       r.cbor_stream!
     elsif ei
-      warn "*** ignoring unimplemented encoding indicator #{ei.inspect} after {" # }
+      r = CBOR::Box.from_instance(r, {ei: ei})
+      # warn "*** implementing encoding indicator #{ei.inspect} after {" # }
     end
     r
   end

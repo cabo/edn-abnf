@@ -12,7 +12,7 @@ module CBOR
     def inspect
       "#<CBOR::Box #{self.class} value=#{value.inspect}, options=#{options.inspect}>"
     end
-    def self.from_number(n, options={})
+    def self.from_instance(n, options={})
       case n
       when Box
         n.class.new(n.value, n.options.merge(options))
@@ -20,23 +20,13 @@ module CBOR
         Ibox.new(n, options.dup)
       when ::Float
         Fbox.new(n, options.dup)
+      when ::String, ::Array, ::Hash, ::CBOR::Tagged
+        Xbox.new(n, options.dup)
       else
         raise ArgumentError, "cbor-diagnostic: can't box number from #{n.inspect}':\n"
       end
     end
-    def to_cbor
-      CBOR.encode(value)
-    end
-    def cbor_diagnostic(opts = {})
-      ret = value.cbor_diagnostic(opts)
-      if ei = options[:ei]
-        ret << "_#{ei}"
-      end
-      ret
-    end
-  end
 
-  class Ibox < Box
     INTEGER_EI = {
       "i" => [23, 0],
       "0" => [0xFF, 1],
@@ -44,7 +34,7 @@ module CBOR
       "2" => [0xFFFFFFFF, 4],
       "3" => [0xFFFFFFFFFFFFFFFF, 8]
     }
-    def make_head(ib, plusbytes, d)
+    def self.make_head(ib, plusbytes, d)
       case plusbytes
       when 0
         [ib + d].pack("C")
@@ -62,6 +52,52 @@ module CBOR
     end
 
     def to_cbor
+      CBOR.encode(value)
+    end
+    def cbor_diagnostic(opts = {})
+      ret = value.cbor_diagnostic(opts)
+      if ei = options[:ei]
+        ret << "_#{ei}"
+      end
+      ret
+    end
+  end
+
+  class Xbox < Box
+    def to_cbor
+      enc = CBOR.encode(value)
+      if ei = options[:ei]
+        maxval, plusbytes = INTEGER_EI[ei]
+        if maxval
+          ib = enc.getbyte(0) & 0xE0
+          ai = enc.getbyte(0) & 0x1F
+          d, replacement = case ai
+                           when 0...24; [ai, 0]
+                           when 24; [enc[1..1].ord, 1]
+                           when 25; [enc[1..2].unpack1("n"), 2]
+                           when 26; [enc[1..4].unpack1("N"), 4]
+                           when 27; [enc[1..8].unpack1("Q>"), 8]
+                           # when 31; XXX conflicting EI information
+                           else raise "unknown additional information #{ai} in ib #{ib}"
+                           end
+          raise ArgumentError, "cbor-diagnostic: #{value} doesn't fit into encoding indicator _#{ei}':\n" unless d <= maxval
+          ib = enc.getbyte(0) & 0xE0
+          new_head = CBOR::Ibox.make_head(ib, plusbytes, d)
+          enc[0..replacement] = new_head
+        else
+          if ei == "" && value == ""
+            enc = CBOR.encode(value.cbor_stream!([]))
+          else
+            warn "*** cbor-diagnostic: ignoring unsupported encoding indicator _#{ei} for #{value.inspect}"
+          end
+        end
+      end
+      enc
+    end
+  end
+
+  class Ibox < Box
+    def to_cbor
       if ei = options[:ei]
         maxval, plusbytes = INTEGER_EI[ei]
         raise ArgumentError, "cbor-diagnostic: unknown encoding indicator _#{ei} for Integer\n" unless maxval
@@ -74,7 +110,7 @@ module CBOR
              end
         raise ArgumentError, "cbor-diagnostic: #{value} doesn't fit into encoding indicator _#{ei}':\n" unless d <= maxval
 
-        make_head(ib, plusbytes, d)
+        CBOR::Ibox.make_head(ib, plusbytes, d)
 
         # s = bignum_to_bytes(d)
         # head(0xc0, TAG_BIGNUM_BASE + (ib >> 5))
