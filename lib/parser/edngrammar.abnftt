@@ -567,7 +567,8 @@ raw-app-string-dt = app-string-dt-prefix app-string-dt-raw1{def ast
     CBOR_DIAG::App_dt.decode(app_string_dt_prefix.text_value, app_string_dt_raw1.ast)
   end}
 app-string-dt-raw1 = "`" (app-string-dt-raw2 / app-string-dt-raw1) "`"{def ast; elements[1].ast; end}
-app-string-dt-raw2 = [newline] app-string-dt{def ast; elements[1].ast; end}
+app-string-dt-raw2 = [newline] app-string-dt{def ast; elements[1].ast; end} /
+                     %x20 app-string-dt %x20{def ast; elements[1].ast; end}
 
 app-string-dt   = date-time{def ast; text_value; end}
 
