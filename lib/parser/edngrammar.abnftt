@@ -147,25 +147,25 @@ app-rstring      = app-prefix rawstring{
     begin
       ::EDNGRAMMAR::APPS[app].decode(app, data)
     rescue CBOR_DIAG::AppParseError => e
-      app_parser_level1_raw_diagnostics(e, rawstring.rawcontent)
+      app_parser_level1_raw_diagnostics(e, elements[1].elements[1])
       raise e
     end
   end
 }
 rawstring      = startrawdelim
-                 [newline] ; swallow up to one leading newline
-                 rawcontent
-                 matchrawdelim{def ast
-                      rawcontent.text_value.gsub("\r", "") + (
-                      tv = matchrawdelim.text_value
-                      dv = startrawdelim.text_value.length
-                      tv[dv..]) end}
+                 (
+                   %x20 rawcontent0 %x20 /
+                   [newline] rawcontent
+                 )
+                  alikerawdelim{def ast; elements[1].elements[1].text_value.gsub("\r", "") end}
 rawdelim       = 1*"`"
 startrawdelim  = rawdelim&{|(rd)|@rawdelimlength = rd.text_value.length}
-matchrawdelim  = rawdelim&{|(rd)|rd.text_value.length >= @rawdelimlength}
+alikerawdelim  = rawdelim&{|(rd)|rd.text_value.length == @rawdelimlength}
 shortrawdelim  = rawdelim&{|(rd)|rd.text_value.length < @rawdelimlength}
 rawchars       = 1*(%x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
+rawchars0      = 1*(%x0a / %x0d / %x21-5f / %x61-7e / NONASCII)
 rawcontent     = 1*(rawchars/shortrawdelim)
+rawcontent0    = *(rawchars0/(*rawchars shortrawdelim)/(" " !alikerawdelim))
 sqstr           = SQUOTE *single-quoted SQUOTE{
   def ast
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
@@ -475,7 +475,7 @@ r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S{
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
 } / ellipsis rh-S{def ast; ellipsis.ast end})
-    (eol-comment *r-non-lf matchrawdelim / fitrawdelim) {
+    (eol-comment *r-non-lf alikerawdelim / fitrawdelim) {
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -538,7 +538,7 @@ raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64{def ast; r_app_strin
 r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
-                  ("#" *r-non-lf matchrawdelim / fitrawdelim){
+                  ("#" *r-non-lf alikerawdelim / fitrawdelim){
                    def ast
                      v = elements[0..2].map {|part| part.text_value}.join
                      t = v.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
