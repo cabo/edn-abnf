@@ -109,7 +109,14 @@ simple-number   = "25" %x30-35         ; 250-255
 uint            = "0" / DIGIT1 *DIGIT
 tagged          = uint spec "(" S item S ")"{
   def ast
-    val = CBOR::Tagged.new(uint.text_value.to_i, item.ast)
+    tagnum = uint.text_value.to_i
+    tagval = item.ast
+    if tagnum == 999 && $options.app_now
+      app, args = tagval
+      val = ::EDNGRAMMAR::APPS[app].decode(app, *args)
+    else
+      val = CBOR::Tagged.new(tagnum, tagval)
+    end
     if ei = spec.text_value[1..-1]
       val = CBOR::Box.from_instance(val, {ei: ei})
       # warn "*** implementing encoding indicator #{ei.inspect} after tag number #{uint.text_value}"

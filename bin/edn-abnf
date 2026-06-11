@@ -82,6 +82,25 @@ begin
         end
       end
     end
+    opts.on("-AAPP", "--app-later=APP", "Handle application extension later") do |v|
+      v.split(",") do |nm|
+        if nm =~ /\A[a-z][a-z0-9]*\z/
+          code = <<-RUBY
+            class CBOR_DIAG::App_#{nm}
+              def self.decode(app_prefix, s)
+                CBOR::Tagged.new(999, [app_prefix, s])
+              end
+            end
+          RUBY
+          eval(code, TOPLEVEL_BINDING, "(app-extension #{nm})")
+        else
+          raise ArgumentError.new("edn-abnf: app-extension name #{nm} not supported")
+        end
+      end
+    end
+    opts.on("--[no-]app-now", "Handle postponed application extensions now") do |v|
+      $options.app_now = v
+    end
     opts.on("-f", "--[no-]fallback", "use tag 999 for unknown app-extensions") do |v|
       $options.fallback = v
     end
@@ -93,7 +112,11 @@ begin
     end
   end
   op.parse!
+rescue LoadError => e
+  warn "Unsupported application extension '#{e.message.split('/')[1]}'"
+  exit 1
 rescue Exception => e
+  warn e.inspect unless e.to_s == 'exit'
   warn op unless e.to_s == 'exit'
   exit 1
 end
