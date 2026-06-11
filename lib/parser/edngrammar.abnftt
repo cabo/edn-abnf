@@ -120,14 +120,16 @@ tagged          = uint spec "(" S item S ")"{
 
 app-prefix      = lcalpha *lcldh ; including h and b64
                 / ucalpha *ucldh ; tagged variant, if defined
-app-string      = app-prefix sqstr{
+app-string      = (app-prefix sqstr&{|x| pref = x[0].app_prefix.text_value
+                     ret = !$options.integrated || !["h", "b64", "dt"].include?(pref)
+                     ret}){
   def ast                       # XXX ignoring h and b64
-    data = sqstr.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
-    app = app_prefix.text_value
+    data = elements[0].sqstr.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
+    app = elements[0].app_prefix.text_value
     begin
       ::EDNGRAMMAR::APPS[app].decode(app, data)
     rescue CBOR_DIAG::AppParseError => e
-      app_parser_level1_diagnostics(e, elements[1].elements[1])
+      app_parser_level1_diagnostics(e, elements[0].elements[1].elements[1])
       raise e
     end
   end
@@ -140,32 +142,35 @@ app-sequence    = app-prefix "<<" seq ">>"{
     ::EDNGRAMMAR::APPS[app].decode(app, args)
   end
 }
-app-rstring      = app-prefix rawstring{
+app-rstring      = (app-prefix rawstring&{|x| pref = x[0].app_prefix.text_value
+                     ret = !$options.integrated || !["h", "b64", "dt"].include?(pref)
+                     ret}){
+
   def ast                       # XXX ignoring h and b64
-    data = rawstring.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
-    app = app_prefix.text_value
+    data = elements[0].rawstring.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
+    app = elements[0].app_prefix.text_value
     begin
       ::EDNGRAMMAR::APPS[app].decode(app, data)
     rescue CBOR_DIAG::AppParseError => e
-      app_parser_level1_raw_diagnostics(e, rawstring.rawcontent)
+      app_parser_level1_raw_diagnostics(e, elements[0].elements[1].elements[1])
       raise e
     end
   end
 }
 rawstring      = startrawdelim
-                 [newline] ; swallow up to one leading newline
-                 rawcontent
-                 matchrawdelim{def ast
-                      rawcontent.text_value.gsub("\r", "") + (
-                      tv = matchrawdelim.text_value
-                      dv = startrawdelim.text_value.length
-                      tv[dv..]) end}
+                 (
+                   %x20 rawcontent0 %x20 /
+                   [newline] rawcontent
+                 )
+                  alikerawdelim{def ast; elements[1].elements[1].text_value.gsub("\r", "") end}
 rawdelim       = 1*"`"
 startrawdelim  = rawdelim&{|(rd)|@rawdelimlength = rd.text_value.length}
-matchrawdelim  = rawdelim&{|(rd)|rd.text_value.length >= @rawdelimlength}
+alikerawdelim  = rawdelim&{|(rd)|rd.text_value.length == @rawdelimlength}
 shortrawdelim  = rawdelim&{|(rd)|rd.text_value.length < @rawdelimlength}
 rawchars       = 1*(%x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
+rawchars0      = 1*(%x0a / %x0d / %x21-5f / %x61-7e / NONASCII)
 rawcontent     = 1*(rawchars/shortrawdelim)
+rawcontent0    = *(rawchars0/(*rawchars shortrawdelim)/(" " !alikerawdelim))
 sqstr           = SQUOTE *single-quoted SQUOTE{
   def ast
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
@@ -475,7 +480,7 @@ r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S{
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
 } / ellipsis rh-S{def ast; ellipsis.ast end})
-    (eol-comment *r-non-lf matchrawdelim / fitrawdelim) {
+    (eol-comment *r-non-lf alikerawdelim / fitrawdelim) {
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -538,7 +543,7 @@ raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64{def ast; r_app_strin
 r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
-                  ("#" *r-non-lf matchrawdelim / fitrawdelim){
+                  ("#" *r-non-lf alikerawdelim / fitrawdelim){
                    def ast
                      v = elements[0..2].map {|part| part.text_value}.join
                      t = v.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)
@@ -567,7 +572,8 @@ raw-app-string-dt = app-string-dt-prefix app-string-dt-raw1{def ast
     CBOR_DIAG::App_dt.decode(app_string_dt_prefix.text_value, app_string_dt_raw1.ast)
   end}
 app-string-dt-raw1 = "`" (app-string-dt-raw2 / app-string-dt-raw1) "`"{def ast; elements[1].ast; end}
-app-string-dt-raw2 = [newline] app-string-dt{def ast; elements[1].ast; end}
+app-string-dt-raw2 = [newline] app-string-dt{def ast; elements[1].ast; end} /
+                     %x20 app-string-dt %x20{def ast; elements[1].ast; end}
 
 app-string-dt   = date-time{def ast; text_value; end}
 

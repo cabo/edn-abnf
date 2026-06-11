@@ -3,6 +3,7 @@
 1969-07-21T02:56:16Z`",-14159024
 =,"dt``
 1969-07-21T02:56:16Z``",-14159024
+=,"dt`` 1969-07-21T02:56:16Z ``",-14159024
 =,dt`1969-07-21T02:56:16.5Z`,-14159023.5,
 =,dt``1969-07-21T02:56:16.5Z``,-14159023.5,
 =,DT`1969-07-21T02:56:16Z`,1(-14159024)
@@ -100,11 +101,10 @@ T02:56:16Z`"
 """
 -,"```d``d``",
 =,"```d``d```","""d``d"""
-=,"```d``d````","""d``d`"""
-=,"```d``d`````","""d``d``"""
-=,"```
-``d``d`````","""``d``d``"""
-=,"`x```","""x``"""
+=,"``` d``d` ```","""d``d`"""
+=,"``` d``d`` ```","""d``d``"""
+=,"``` ``d``d`` ```","""``d``d``"""
+=,"``` x`` ```","""x``"""
 =,"`
 poem
 `","""poem\n"""
@@ -115,8 +115,8 @@ poem``","""poem"""
 double
 poem``
 ``"
-=,"`leading backquote
-poem``","""leading backquote
+=,"`` leading backquote
+poem` ``","""leading backquote
 poem`"""
 -,"""foo\
 bar""","""foobar"""
@@ -127,3 +127,23 @@ bar""","""foobar"""
 =,"b64'AA//AAAA'",h`000FFF000000//foo`
 =,"b64`AA//AAAA`",h`000FFF000000`
 =,"b64`AA//AAAA#foo`",h`000FFF000000`
+=,"````
+```bash
+# what you need to check in `curl | bash` instructions:
+blue bla blee # don't do this!
+```
+````","""```bash
+# what you need to check in `curl | bash` instructions:
+blue bla blee # don't do this!
+```
+"""
+=,``` a = ``foo`` ```,"""a = ``foo``"""
+=,"```` ```bash
+# what you need to check in `curl | bash` instructions:
+blue bla blee # don't do this!
+``` ````","""```bash
+# what you need to check in `curl | bash` instructions:
+blue bla blee # don't do this!
+```"""
+=,"`` 
+`a` ``","""\n`a`"""
