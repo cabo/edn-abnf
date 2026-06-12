@@ -64,6 +64,8 @@ module CBOR
   end
 
   class Xbox < Box
+    def encoding; value.encoding end
+    def size; value.size end
     def to_cbor
       enc = CBOR.encode(value)
       if ei = options[:ei]
