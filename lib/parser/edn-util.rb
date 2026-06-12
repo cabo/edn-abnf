@@ -111,8 +111,9 @@ class Treetop::Runtime::SyntaxNode
   end
 end
 
-
-require 'cbor-diagnostic-app/dt'
-require 'cbor-diagnostic-app/ip'
+# MTI app-extensions:
 require 'cbor-diagnostic-app/h'
 require 'cbor-diagnostic-app/b64'
+require 'cbor-diagnostic-app/dt'
+require 'cbor-diagnostic-app/ip'
+require 'cbor-diagnostic-app/t1_b1'
