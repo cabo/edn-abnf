@@ -348,7 +348,12 @@ rule streamstring
     unless Set[*strings.map(&:encoding)].size == 1
       warn "*** mixed streamstring #{strings.cbor_diagnostic}"
     end
-    strings.join.cbor_stream!(strings.map(&:size))
+    strings.each do |s|
+      if CBOR::Xbox === s && (ei = s.options[:ei])
+        warn "*** unimplemented encoding indicator #{ei.inspect} for #{s.inspect}"
+      end
+    end
+    strings.join.cbor_stream!(strings.map(&:size)) # XXX loses EI
   end
 }
 end

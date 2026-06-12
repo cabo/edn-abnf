@@ -104,6 +104,9 @@ begin
     opts.on("-f", "--[no-]fallback", "use tag 999 for unknown app-extensions") do |v|
       $options.fallback = v
     end
+    opts.on("-b", "--[no-]brace", "retry parsind with braces around added") do |v|
+      $options.brace = v
+    end
     opts.on("-wCOL", "--wrap=COL", Integer, "EDN: wrap at column COL") do |v|
       $options.wrap = v
     end
@@ -200,7 +203,15 @@ begin
   if $options.cbor
     result = CBOR.decode(edn_file)
   else
-    edn = EDN.from_edn(edn_file)
+    if $options.brace
+      begin
+        edn = EDN.from_edn(edn_file)
+      rescue ArgumentError # Parse error
+        edn = EDN.from_edn("{\n" + edn_file + "}\n")
+      end
+    else
+      edn = EDN.from_edn(edn_file)
+    end
     result = edn.tree               # XXX .tree?
   end
 rescue CBOR_DIAG::AppParseError, ArgumentError => e
