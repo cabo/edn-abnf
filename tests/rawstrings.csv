@@ -145,5 +145,9 @@ blue bla blee # don't do this!
 # what you need to check in `curl | bash` instructions:
 blue bla blee # don't do this!
 ```"""
+=,"``
+`a``","""`a"""
+=,"``
+`a``","""`a"""
 =,"`` 
 `a` ``","""\n`a`"""
