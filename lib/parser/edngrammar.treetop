@@ -31,37 +31,11 @@ rule string1
   end
 }
 end
-rule string1e
+rule string
 (string1 / ellipsis)
 end
 rule ellipsis
 "." 3.. { def ast; CBOR::Tagged.new(888, nil) end
-}
-end
-rule string
-(string1e (S "+" S string1e)*) {
-  def join1(s)
-    s.join # XXX -- look at encoding and ei
-  end
-  def unpack_chunk(c, s)
-    if c == String
-      join1(s)
-    else
-      unless c == CBOR::Tagged && s.first.tag == 888 && s.first.value == nil # XXX check all values?
-        raise ArgumentError, "*** unjoinable chunks #{c.inspect} #{s.inspect}" if s.size != 1
-      end
-      s.first
-    end
-  end
-  def ast
-    arr = [elements[0].ast] + elements[1].elements.map {|x| x.elements[3].ast}
-    charr = arr.chunk(&:class).to_a
-    if charr.size == 1
-      unpack_chunk(*charr.first)
-    else
-      CBOR::Tagged.new(888, charr.map {|x| unpack_chunk(*x)})
-    end
-  end
 }
 end
 rule number
@@ -188,7 +162,16 @@ rule app_rstring
 }
 end
 rule rawstring
-(startrawdelim ((" " rawcontent0 " ") / (newline? rawcontent)) alikerawdelim) {def ast; elements[1].elements[1].text_value.gsub("\r", "") end}
+(startrawdelim raw_inner alikerawdelim) {def ast
+                                 val = raw_inner.text_value.gsub("\r", "")
+                                 if val[0] == ' ' && val[-1] == ' '
+                                   val[1...-1]
+                                 elsif val[0] == "\n"
+                                   val[1..-1]
+                                 else
+                                   val
+                                 end
+                               end}
 end
 rule rawdelim
 "`"+
@@ -205,14 +188,8 @@ end
 rule rawchars
 ("\n" / "\r" / [\ -_] / [a-~] / NONASCII)+
 end
-rule rawchars0
-("\n" / "\r" / [!-_] / [a-~] / NONASCII)+
-end
-rule rawcontent
+rule raw_inner
 (rawchars / shortrawdelim)+
-end
-rule rawcontent0
-(rawchars0 / (rawchars* shortrawdelim) / " " !alikerawdelim)*
 end
 rule sqstr
 (SQUOTE single_quoted* SQUOTE) {
@@ -553,9 +530,6 @@ end
 rule h_comment
 (("/" h_non_slash_star h_non_slash* "/") / ("/*" h_ends_in_star (h_non_slash_star h_ends_in_star)* "/") / (eol_comment i_non_lf* i_LF))
 end
-rule fitrawdelim
-rawdelim &{|(rd)|rd.text_value.length == @rawdelimlength}
-end
 rule rh_S
 (lblank* (rh_comment lblank*)*)
 end
@@ -585,7 +559,7 @@ rule r_app_string_h
   def ast
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
-} / (ellipsis rh_S) {def ast; ellipsis.ast end})* ((eol_comment r_non_lf* alikerawdelim) / fitrawdelim)) {
+} / (ellipsis rh_S) {def ast; ellipsis.ast end})* (eol_comment r_non_lf*)? alikerawdelim) {
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -648,7 +622,8 @@ rule raw_app_string_b64
 ("b64" startrawdelim r_app_string_b64) {def ast; r_app_string_b64.ast end}
 end
 rule r_app_string_b64
-(rb64_S ((b64dig rb64_S) 4..4)* (b64dig rb64_S b64dig rb64_S (("=" rb64_S "=") / (b64dig rb64_S "="?))? rb64_S)? (("#" r_non_lf* alikerawdelim) / fitrawdelim)) {
+(rb64_S ((b64dig rb64_S) 4..4)* (b64dig rb64_S b64dig rb64_S (("=" rb64_S "=") / (b64dig rb64_S "="?))? rb64_S)? ("#" r_non_lf*)? alikerawdelim) {
+
                    def ast
                      v = elements[0..2].map {|part| part.text_value}.join
                      t = v.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)

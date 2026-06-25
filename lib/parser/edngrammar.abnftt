@@ -26,33 +26,9 @@ string1         = (tstr / bstr) spec{
     val
   end
 }
-string1e        = string1 / ellipsis
+string          = string1 / ellipsis
 ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end
 } ; "..." or more dots
-string          = string1e *(S "+" S string1e){
-  def join1(s)
-    s.join # XXX -- look at encoding and ei
-  end
-  def unpack_chunk(c, s)
-    if c == String
-      join1(s)
-    else
-      unless c == CBOR::Tagged && s.first.tag == 888 && s.first.value == nil # XXX check all values?
-        raise ArgumentError, "*** unjoinable chunks #{c.inspect} #{s.inspect}" if s.size != 1
-      end
-      s.first
-    end
-  end
-  def ast
-    arr = [elements[0].ast] + elements[1].elements.map {|x| x.elements[3].ast}
-    charr = arr.chunk(&:class).to_a
-    if charr.size == 1
-      unpack_chunk(*charr.first)
-    else
-      CBOR::Tagged.new(888, charr.map {|x| unpack_chunk(*x)})
-    end
-  end
-}
 
 number          = (hexfloat / hexint / octint / binint
                    / decnumber / nonfin) spec{
@@ -164,20 +140,25 @@ app-rstring      = (app-prefix rawstring&{|x| pref = x[0].app_prefix.text_value
     end
   end
 }
-rawstring      = startrawdelim
-                 (
-                   %x20 rawcontent0 %x20 /
-                   [newline] rawcontent
-                 )
-                  alikerawdelim{def ast; elements[1].elements[1].text_value.gsub("\r", "") end}
-rawdelim       = 1*"`"
-startrawdelim  = rawdelim&{|(rd)|@rawdelimlength = rd.text_value.length}
-alikerawdelim  = rawdelim&{|(rd)|rd.text_value.length == @rawdelimlength}
-shortrawdelim  = rawdelim&{|(rd)|rd.text_value.length < @rawdelimlength}
-rawchars       = 1*(%x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
-rawchars0      = 1*(%x0a / %x0d / %x21-5f / %x61-7e / NONASCII)
-rawcontent     = 1*(rawchars/shortrawdelim)
-rawcontent0    = *(rawchars0/(*rawchars shortrawdelim)/(" " !alikerawdelim))
+rawstring       = startrawdelim
+                  raw-inner
+                  alikerawdelim{def ast
+                                 val = raw_inner.text_value.gsub("\r", "")
+                                 if val[0] == ' ' && val[-1] == ' '
+                                   val[1...-1]
+                                 elsif val[0] == "\n"
+                                   val[1..-1]
+                                 else
+                                   val
+                                 end
+                               end}
+rawdelim        = 1*"`"
+startrawdelim   = rawdelim&{|(rd)|@rawdelimlength = rd.text_value.length}
+alikerawdelim   = rawdelim&{|(rd)|rd.text_value.length == @rawdelimlength}
+shortrawdelim   = rawdelim&{|(rd)|rd.text_value.length < @rawdelimlength}
+rawchars        = 1*(%x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
+raw-inner       = 1*(rawchars / shortrawdelim)
+
 sqstr           = SQUOTE *single-quoted SQUOTE{
   def ast
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
@@ -472,8 +453,6 @@ h-comment = "/" h-non-slash-star *h-non-slash "/"
 
 ;; integrated parser for h``
 
-fitrawdelim  = rawdelim&{|(rd)|rd.text_value.length == @rawdelimlength}
-
 rh-S = *(lblank) *(rh-comment *(lblank))
 rh-2 = %x61-7f / NONASCII / shortrawdelim
 rh-non-slash = lblank / %x21-2e / %x30-5f / rh-2
@@ -492,7 +471,7 @@ r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S{
     Integer(elements[0].text_value + elements[2].text_value, 16).chr("BINARY")
   end
 } / ellipsis rh-S{def ast; ellipsis.ast end})
-    (eol-comment *r-non-lf alikerawdelim / fitrawdelim) {
+    [eol-comment *r-non-lf] alikerawdelim{
   def unpack_thread(s)
     case s[0]
     when CBOR::Tagged
@@ -555,7 +534,8 @@ raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64{def ast; r_app_strin
 r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
-                  ("#" *r-non-lf alikerawdelim / fitrawdelim){
+                   ["#" *r-non-lf] alikerawdelim{
+
                    def ast
                      v = elements[0..2].map {|part| part.text_value}.join
                      t = v.gsub(/\s|#[^\n]*(?:\n|\z)/, '').chars.each_slice(4).map(&:join)

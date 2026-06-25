@@ -4,9 +4,8 @@ item            = map / array / tagged
                 / string / streamstring
 
 string1         = (tstr / bstr) spec
-string1e        = string1 / ellipsis
+string          = string1 / ellipsis
 ellipsis        = 3*"." ; "..." or more dots
-string          = string1e *(S "+" S string1e)
 
 number          = (hexfloat / hexint / octint / binint
                    / decnumber / nonfin) spec
@@ -42,17 +41,19 @@ app-prefix      = lcalpha *lcldh ; including h and b64
                 / ucalpha *ucldh ; tagged variant, if defined
 app-string      = app-prefix sqstr
 app-sequence    = app-prefix "<<" seq ">>"
-app-rstring      = app-prefix rawstring
-rawstring      = startrawdelim
-                 [newline] ; swallow up to one leading newline
-                 rawcontent
-                 matchrawdelim
-rawdelim       = 1*"`"
-startrawdelim  = rawdelim
-matchrawdelim  = rawdelim
-shortrawdelim  = rawdelim
-rawchars       = 1*(%x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
-rawcontent     = 1*(rawchars/shortrawdelim)
+app-rstring     = app-prefix rawstring
+rawstring       = startrawdelim
+                  raw-inner
+                  alikerawdelim
+rawdelim        = 1*"`"
+startrawdelim   = rawdelim
+                  ; width (number of backquotes) distinguishes
+                  ; between following alikerawdelim and shortrawdelim
+alikerawdelim   = rawdelim ; width == previous startrawdelim
+shortrawdelim   = rawdelim ; width < previous startrawdelim
+rawchars        = 1*(%x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
+raw-inner       = 1*(rawchars / shortrawdelim)
+
 sqstr           = SQUOTE *single-quoted SQUOTE
 bstr            = (sq-app-string-h)
                 / (sq-app-string-b64)
@@ -230,8 +231,6 @@ h-comment = "/" h-non-slash-star *h-non-slash "/"
 
 ;; integrated parser for h``
 
-fitrawdelim  = rawdelim
-
 rh-S = *(lblank) *(rh-comment *(lblank))
 rh-2 = %x61-7f / NONASCII / shortrawdelim
 rh-non-slash = lblank / %x21-2e / %x30-5f / rh-2
@@ -246,7 +245,7 @@ rh-comment = "/" rh-non-slash-star *rh-non-slash "/"
 
 raw-app-string-h = %s"h" startrawdelim r-app-string-h
 r-app-string-h = rh-S *(HEXDIG rh-S HEXDIG rh-S / ellipsis rh-S)
-    (eol-comment *r-non-lf matchrawdelim / fitrawdelim)
+    [eol-comment *r-non-lf] alikerawdelim
 
 
 ;; integrated parser for b64''
@@ -267,7 +266,7 @@ raw-app-string-b64 = %s"b64" startrawdelim r-app-string-b64
 r-app-string-b64  = rb64-S *(4(b64dig rb64-S))
                   [b64dig rb64-S b64dig rb64-S
                    ["=" rb64-S "=" / b64dig rb64-S ["="]] rb64-S]
-                  ("#" *r-non-lf matchrawdelim / fitrawdelim)
+                  ["#" *r-non-lf] alikerawdelim
 rb64-S           = *lblank *(rb64-comment *lblank)
 rb64-comment     = "#" *r-non-lf %x0A
 
