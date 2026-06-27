@@ -7,11 +7,11 @@ require 'json'
 require 'cbor-pretty'
 require 'cbor-deterministic'
 
-# Temporary fix for name conflicts between cbor-diag and edn-abnf
-diag_path = $LOAD_PATH.grep(/gems\/cbor-diag/).first
-edn_path = $LOAD_PATH.grep(/gems\/edn-abnf/).first
-$LOAD_PATH[$LOAD_PATH.index(diag_path)] = edn_path
-$LOAD_PATH << diag_path
+# # Temporary fix for name conflicts between cbor-diag and edn-abnf
+# diag_path = $LOAD_PATH.grep(/gems\/cbor-diag/).first
+# edn_path = $LOAD_PATH.grep(/gems\/edn-abnf/).first
+# $LOAD_PATH[$LOAD_PATH.index(diag_path)] = edn_path
+# $LOAD_PATH << diag_path
 
 require_relative '../lib/edn-abnf.rb'
 
@@ -28,11 +28,35 @@ class String
   end
 end
 
-def tree_from_edn_possibly_hex(s)
+def tree_from_edn_possibly_hex1(s)
   if s[0..1] == "h]"
     s = s[2..-1].xeh.force_encoding(Encoding::UTF_8)
   end
   EDN.from_edn(s).tree
+end
+
+require 'open3'
+def tree_from_edn_possibly_hex(s, failure_ok = false)
+  if s[0..1] == "h]"
+    s = s[2..-1].xeh.force_encoding(Encoding::UTF_8)
+  end
+  stdout_str, stderr_str, status = Open3.capture3("cbor encode -d", stdin_data: s)
+  if status.success?
+    begin
+      a = CBOR.decode_seq(stdout_str.b)
+      if a.size == 1
+        a.first
+      else
+        CBOR::Sequence.new(a)
+      end
+    rescue => e
+      warn "@#{failure_ok ? "@@@" : "!!!"}  #{stdout_str.b.hexi} #{e.message}"
+      EDN.from_edn(s).tree        # unfail...
+    end
+  else
+    warn "@@#{failure_ok ? "@@@" : "!!!"} #{s.inspect} -- #{stderr_str}"
+    EDN.from_edn(s).tree        # unfail...
+  end
 end
 
 Encoding.default_external = Encoding::UTF_8
@@ -164,7 +188,7 @@ if $options.lines
     begin
       ok = ok == "="
       puts "➔ #{ok.inspect}, #{ednin.inspect}, #{out.inspect}" if $options.verbose
-      result = tree_from_edn_possibly_hex(ednin || "")
+      result = tree_from_edn_possibly_hex(ednin || "", !ok)
       diag = result.cbor_diagnostic
       if out == diag && !ok
           puts "** ≠ / #{diag.inspect} / #{out.inspect}"
