@@ -12,12 +12,8 @@ seq             = S [item *(MSC item) SOC]{
     end
   end
 }
-item            = map / array / tagged
-                / number / simple
-                / string / streamstring
-
-string1         = (tstr / bstr) spec{
-  def ast
+item            = map / array / tagged ; spec inside
+                / (number / string / prefixed) spec{def ast
     val = elements[0].ast
     if ei = spec.text_value[1..-1]
        # warn "*** implementing encoding indicator #{ei.inspect} for #{elements[0].text_value}"
@@ -26,22 +22,11 @@ string1         = (tstr / bstr) spec{
     val
   end
 }
-string          = string1 / ellipsis
-ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end
-} ; "..." or more dots
+                / simple / ellipsis ; no spec
+                / streamstring ; deprecated (spec inside)
 
-number          = (hexfloat / hexint / octint / binint
-                   / decnumber / nonfin) spec{
-  def ast
-    val = elements[0].ast
-
-    if ei = spec.text_value[1..-1]
-       # warn "*** implementing encoding indicator #{ei.inspect} for #{elements[0].text_value}"
-       val = CBOR::Box.from_instance(val, {ei: ei})
-    end
-    val
-  end
-}
+number          = hexfloat / hexint / octint / binint
+                / decnumber / nonfin
 sign            = "+" / "-"
 decnumber       = [sign] (1*DIGIT ["." *DIGIT] / "." 1*DIGIT)
                          ["e" [sign] 1*DIGIT]{
@@ -66,6 +51,12 @@ binint          = [sign] "0b" 1*BDIGIT{ def ast; Integer(text_value) end}
 nonfin          = %s"Infinity"{ def ast; Float::INFINITY end }
                 / %s"-Infinity"{ def ast; -Float::INFINITY end }
                 / %s"NaN"{ def ast; Float::NAN end }
+
+string          = dqstr / rawstring / sqstr / embedded
+
+ellipsis        = 3*"."{ def ast; CBOR::Tagged.new(888, nil) end
+} ; "..." or more dots
+
 simple          = %s"false"{ def ast; false end }
                 / %s"true"{ def ast; true end }
                 / %s"null"{ def ast; nil end }
@@ -101,45 +92,37 @@ tagged          = uint spec "(" S item S ")"{
   end
 }
 
-app-prefix      = lcalpha *lcldh ; including h and b64
-                / ucalpha *ucldh ; tagged variant, if defined
-app-string      = (app-prefix sqstr&{|x| pref = x[0].app_prefix.text_value
-                     ret = !$options.integrated || !["h", "b64", "dt"].include?(pref)
-                     ret}){
-  def ast                       # XXX ignoring h and b64
-    data = elements[0].sqstr.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
-    app = elements[0].app_prefix.text_value
-    begin
-      ::EDNGRAMMAR::APPS[app].decode(app, data)
-    rescue CBOR_DIAG::AppParseError => e
-      app_parser_level1_diagnostics(e, elements[0].elements[1].elements[1])
-      raise e
-    end
-  end
-}
-app-sequence    = app-prefix "<<" seq ">>"{
-  def ast
-    args = seq.ast
-    app = app_prefix.text_value
-    # Find a better place to put a default initialization
-    ::EDNGRAMMAR::APPS[app].decode(app, args)
-  end
-}
-app-rstring      = (app-prefix rawstring&{|x| pref = x[0].app_prefix.text_value
-                     ret = !$options.integrated || !["h", "b64", "dt"].include?(pref)
-                     ret}){
+prefix          = lcalpha *lcldh
+                / ucalpha *ucldh
 
-  def ast                       # XXX ignoring h and b64
-    data = elements[0].rawstring.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
-    app = elements[0].app_prefix.text_value
-    begin
-      ::EDNGRAMMAR::APPS[app].decode(app, data)
-    rescue CBOR_DIAG::AppParseError => e
-      app_parser_level1_raw_diagnostics(e, elements[0].elements[1].elements[1])
-      raise e
-    end
-  end
-}
+prefixed        = (prefix&{|(pr)| @pref = pr.text_value;
+                    !$options.integrated || !["h", "b64", "dt"].include?(@pref)}) (sqstr{def ast1(pref)
+       data = ast.force_encoding(Encoding::UTF_8) # XXX undo .b
+       begin
+         ::EDNGRAMMAR::APPS[pref].decode(pref, data)
+       rescue CBOR_DIAG::AppParseError => e
+         app_parser_level1_diagnostics(e, elements[1])
+         raise e
+       end
+end} / rawstring{def ast1(pref)
+       data = ast.force_encoding(Encoding::UTF_8) # XXX undo .b
+       begin
+         ::EDNGRAMMAR::APPS[pref].decode(pref, data)
+       rescue CBOR_DIAG::AppParseError => e
+         app_parser_level1_raw_diagnostics(e, elements[1])
+         raise e
+       end
+end} / embedded{def ast1(pref)
+    args = seq.ast
+    ::EDNGRAMMAR::APPS[pref].decode(pref, args)
+  end}){def ast; elements[2].ast1(prefix.text_value); end}
+                / (sq-app-string-h)
+                / (sq-app-string-b64)
+                / (sq-app-string-dt)
+                / (raw-app-string-h)
+                / (raw-app-string-b64)
+                / (raw-app-string-dt)
+
 rawstring       = startrawdelim
                   raw-inner
                   alikerawdelim{def ast
@@ -159,22 +142,14 @@ shortrawdelim   = rawdelim&{|(rd)|rd.text_value.length < @rawdelimlength}
 rawchars        = 1*(%x0a / %x0d / %x20-5f / %x61-7e / NONASCII)
 raw-inner       = 1*(rawchars / shortrawdelim)
 
+dqstr           = DQUOTE *double-quoted DQUOTE{
+  def ast
+    elements[1].elements.map {|x| x.ast}.join
+  end
+}
 sqstr           = SQUOTE *single-quoted SQUOTE{
   def ast
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
-  end
-}
-bstr            = (sq-app-string-h&{|x|$options.integrated}){ def ast; elements[0].ast end}
-                / (sq-app-string-b64&{|x|$options.integrated}){ def ast; elements[0].ast end}
-                / (raw-app-string-h&{|x|$options.integrated}){ def ast; elements[0].ast end}
-                / (raw-app-string-b64&{|x|$options.integrated}){ def ast; elements[0].ast end}
-                / (sq-app-string-dt&{|x|$options.integrated}){ def ast; elements[0].ast end}
-                / (raw-app-string-dt&{|x|$options.integrated}){ def ast; elements[0].ast end} /
-                  app-string / sqstr / app-rstring / rawstring / app-sequence / embedded
-                  ; app-string/-sequence could be any type
-tstr            = DQUOTE *double-quoted DQUOTE{
-  def ast
-    elements[1].elements.map {|x| x.ast}.join
   end
 }
 embedded        = "<<" seq ">>"{
@@ -264,8 +239,6 @@ MSC             = ("," S) / (MS ["," S])
 ; optional comma and/or space
 SOC             = S ["," S]
 
-; check semantically that strings are either all text or all bytes
-; note that there must be at least one string to distinguish
 streamstring    = "(_" MS string *(MSC string) SOC ")"{
   def ast
     strings = [elements[2].ast] + elements[3].elements.map {|x| x.string.ast }

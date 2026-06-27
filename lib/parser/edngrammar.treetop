@@ -17,11 +17,7 @@ rule seq
 }
 end
 rule item
-(map / array / tagged / number / simple / string / streamstring)
-end
-rule string1
-((tstr / bstr) spec) {
-  def ast
+(map / array / tagged / ((number / string / prefixed) spec) {def ast
     val = elements[0].ast
     if ei = spec.text_value[1..-1]
        # warn "*** implementing encoding indicator #{ei.inspect} for #{elements[0].text_value}"
@@ -29,27 +25,10 @@ rule string1
     end
     val
   end
-}
-end
-rule string
-(string1 / ellipsis)
-end
-rule ellipsis
-"." 3.. { def ast; CBOR::Tagged.new(888, nil) end
-}
+} / simple / ellipsis / streamstring)
 end
 rule number
-((hexfloat / hexint / octint / binint / decnumber / nonfin) spec) {
-  def ast
-    val = elements[0].ast
-
-    if ei = spec.text_value[1..-1]
-       # warn "*** implementing encoding indicator #{ei.inspect} for #{elements[0].text_value}"
-       val = CBOR::Box.from_instance(val, {ei: ei})
-    end
-    val
-  end
-}
+(hexfloat / hexint / octint / binint / decnumber / nonfin)
 end
 rule sign
 ("+" / "-")
@@ -85,6 +64,13 @@ end
 rule nonfin
 ("Infinity" { def ast; Float::INFINITY end } / "-Infinity" { def ast; -Float::INFINITY end } / "NaN" { def ast; Float::NAN end })
 end
+rule string
+(dqstr / rawstring / sqstr / embedded)
+end
+rule ellipsis
+"." 3.. { def ast; CBOR::Tagged.new(888, nil) end
+}
+end
 rule simple
 ("false" { def ast; false end } / "true" { def ast; true end } / "null" { def ast; nil end } / "undefined" { def ast; CBOR::Simple.new(23) end } / ("simple(" S simple_number S ")") {
                   def ast; CBOR::Simple(simple_number.text_value.to_i) end
@@ -115,51 +101,31 @@ rule tagged
   end
 }
 end
-rule app_prefix
+rule prefix
 ((lcalpha lcldh*) / (ucalpha ucldh*))
 end
-rule app_string
-(app_prefix sqstr) &{|x| pref = x[0].app_prefix.text_value
-                     ret = !$options.integrated || !["h", "b64", "dt"].include?(pref)
-                     ret} {
-  def ast                       # XXX ignoring h and b64
-    data = elements[0].sqstr.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
-    app = elements[0].app_prefix.text_value
-    begin
-      ::EDNGRAMMAR::APPS[app].decode(app, data)
-    rescue CBOR_DIAG::AppParseError => e
-      app_parser_level1_diagnostics(e, elements[0].elements[1].elements[1])
-      raise e
-    end
-  end
-}
-end
-rule app_sequence
-(app_prefix "<<" seq ">>") {
-  def ast
+rule prefixed
+((prefix &{|(pr)| @pref = pr.text_value;
+                    !$options.integrated || !["h", "b64", "dt"].include?(@pref)} (sqstr {def ast1(pref)
+       data = ast.force_encoding(Encoding::UTF_8) # XXX undo .b
+       begin
+         ::EDNGRAMMAR::APPS[pref].decode(pref, data)
+       rescue CBOR_DIAG::AppParseError => e
+         app_parser_level1_diagnostics(e, elements[1])
+         raise e
+       end
+end} / rawstring {def ast1(pref)
+       data = ast.force_encoding(Encoding::UTF_8) # XXX undo .b
+       begin
+         ::EDNGRAMMAR::APPS[pref].decode(pref, data)
+       rescue CBOR_DIAG::AppParseError => e
+         app_parser_level1_raw_diagnostics(e, elements[1])
+         raise e
+       end
+end} / embedded {def ast1(pref)
     args = seq.ast
-    app = app_prefix.text_value
-    # Find a better place to put a default initialization
-    ::EDNGRAMMAR::APPS[app].decode(app, args)
-  end
-}
-end
-rule app_rstring
-(app_prefix rawstring) &{|x| pref = x[0].app_prefix.text_value
-                     ret = !$options.integrated || !["h", "b64", "dt"].include?(pref)
-                     ret} {
-
-  def ast                       # XXX ignoring h and b64
-    data = elements[0].rawstring.ast.force_encoding(Encoding::UTF_8) # XXX undo .b
-    app = elements[0].app_prefix.text_value
-    begin
-      ::EDNGRAMMAR::APPS[app].decode(app, data)
-    rescue CBOR_DIAG::AppParseError => e
-      app_parser_level1_raw_diagnostics(e, elements[0].elements[1].elements[1])
-      raise e
-    end
-  end
-}
+    ::EDNGRAMMAR::APPS[pref].decode(pref, args)
+  end})) {def ast; elements[2].ast1(prefix.text_value); end} / sq_app_string_h / sq_app_string_b64 / sq_app_string_dt / raw_app_string_h / raw_app_string_b64 / raw_app_string_dt)
 end
 rule rawstring
 (startrawdelim raw_inner alikerawdelim) {def ast
@@ -191,20 +157,17 @@ end
 rule raw_inner
 (rawchars / shortrawdelim)+
 end
+rule dqstr
+(DQUOTE double_quoted* DQUOTE) {
+  def ast
+    elements[1].elements.map {|x| x.ast}.join
+  end
+}
+end
 rule sqstr
 (SQUOTE single_quoted* SQUOTE) {
   def ast
     elements[1].elements.map {|x| x.ast}.join.b # XXX .b
-  end
-}
-end
-rule bstr
-(sq_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_h &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_b64 &{|x|$options.integrated} { def ast; elements[0].ast end} / sq_app_string_dt &{|x|$options.integrated} { def ast; elements[0].ast end} / raw_app_string_dt &{|x|$options.integrated} { def ast; elements[0].ast end} / app_string / sqstr / app_rstring / rawstring / app_sequence / embedded)
-end
-rule tstr
-(DQUOTE double_quoted* DQUOTE) {
-  def ast
-    elements[1].elements.map {|x| x.ast}.join
   end
 }
 end
