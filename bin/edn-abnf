@@ -10,8 +10,10 @@ require 'cbor-deterministic'
 # Temporary fix for name conflicts between cbor-diag and edn-abnf
 diag_path = $LOAD_PATH.grep(/gems\/cbor-diag/).first
 edn_path = $LOAD_PATH.grep(/gems\/edn-abnf/).first
-$LOAD_PATH[$LOAD_PATH.index(diag_path)] = edn_path
-$LOAD_PATH << diag_path
+if edn_path
+  $LOAD_PATH[$LOAD_PATH.index(diag_path)] = edn_path
+  $LOAD_PATH << diag_path
+end
 
 require_relative '../lib/edn-abnf.rb'
 
@@ -216,6 +218,7 @@ begin
   end
 rescue CBOR_DIAG::AppParseError, ArgumentError => e
   warn "** #{e}"
+  warn e.backtrace if $options.verbose
   exit 1
 rescue CBOR::OutOfBytesError, RuntimeError, JSON::GeneratorError => e
   warn "** (encoded CBOR input:) #{e}"
