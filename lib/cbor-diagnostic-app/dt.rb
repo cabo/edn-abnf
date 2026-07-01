@@ -7,8 +7,9 @@ require 'time'
 # Probably should copy over Time#xmlschema and fix that for us.
 
 class CBOR_DIAG::App_dt
-  def self.decode(app_prefix, s)
+  def self.decode(prefix, s)
     parser = DTGRAMMARParser.new
+    s = EDN.to_one_string(prefix, s)
     ast = parser.parse(s)
     if !ast
       raise CBOR_DIAG::AppParseError.new("cbor-diagnostic: Parse Error in dt'#{s}':\n" << EDN.reason(parser, s), parser.failure_index)
@@ -21,13 +22,13 @@ class CBOR_DIAG::App_dt
     else
       t.to_i
     end
-    case app_prefix
+    case prefix
     when 'dt'
       tv
     when 'DT'
       CBOR::Tagged.new(1, tv)
     else
-      fail app_prefix
+      fail prefix
     end
   end
 end

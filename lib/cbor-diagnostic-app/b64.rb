@@ -1,8 +1,9 @@
 require_relative "b64grammar.rb"
 
 class CBOR_DIAG::App_b64
-  def self.decode(_, s)
+  def self.decode(prefix, s)
     parser = B64GRAMMARParser.new #  B? XXX
+    s = EDN.to_one_string(prefix, s)
     ast = parser.parse(s)
     if !ast
       raise CBOR_DIAG::AppParseError.new("cbor-diagnostic: Parse Error in b64'#{s}':\n" << EDN.reason(parser, s), parser.failure_index)

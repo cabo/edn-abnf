@@ -9,6 +9,9 @@ module CBOR
     def to_s
       value.to_s
     end
+    def to_str
+      value.to_str
+    end
     def inspect
       "#<CBOR::Box #{self.class} value=#{value.inspect}, options=#{options.inspect}>"
     end
